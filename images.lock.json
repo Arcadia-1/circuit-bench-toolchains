@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "images": [
+    {
+      "name": "openroad-asap7",
+      "image": "ghcr.io/arcadia-1/circuit-bench-openroad-asap7:1.0.0",
+      "digest": "sha256:82463d5abf9dc0c8f4f402f78f544ba193a4ecea62b0397a5b193388062d3f92",
+      "components": {
+        "openroad": "26Q2-2123-g8f0a892fa2",
+        "icarus_verilog": "14.0-devel-s20260301-180-gde415b2f0-dirty",
+        "python": "3.12.3",
+        "asap7_snapshot": "2026-06-17"
+      }
+    },
+    {
+      "name": "ngspice-sky130",
+      "image": "ghcr.io/arcadia-1/circuit-bench-ngspice-sky130:1.0.0",
+      "digest": "sha256:925797a8bda5ef0c0634e479519044078a4491d91210cce73ecae666ccc6b9dc",
+      "components": {
+        "ngspice": "39",
+        "python": "3.11.2",
+        "sky130_model_path": "/opt/sky130/continuous/sky130.lib.spice"
+      }
+    }
+  ]
+}
