@@ -3,8 +3,9 @@ Circuit-Bench ngspice and Sky130 smoke test
 
 VDD vdd 0 1.8
 VIN in 0 0
-X1 out in 0 0 sky130_fd_pr__nfet_01v8 L=0.15u W=1u
-X2 out in vdd vdd sky130_fd_pr__pfet_01v8 L=0.15u W=2u
+* Sky130 wrapper geometry is expressed as numeric micrometres.
+X1 out in 0 0 sky130_fd_pr__nfet_01v8 L=0.15 W=1
+X2 out in vdd vdd sky130_fd_pr__pfet_01v8 L=0.15 W=2
 
 .op
 .end

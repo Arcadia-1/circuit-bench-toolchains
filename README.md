@@ -10,7 +10,7 @@ reference solutions, hidden tests, model logs, or credentials.
 | Tool and process | Image |
 | --- | --- |
 | OpenROAD and ASAP7 | `ghcr.io/arcadia-1/circuit-bench-openroad-asap7:1.0.0` |
-| ngspice and Sky130 | `ghcr.io/arcadia-1/circuit-bench-ngspice-sky130:1.0.0` |
+| ngspice and Sky130 | `ghcr.io/arcadia-1/circuit-bench-sky130-ngspice:2.0.1` |
 
 The tags are immutable public release tags. For reproducible automation, use
 the registry digests recorded in `images.lock.json` rather than a mutable alias.
@@ -22,7 +22,7 @@ No GitHub account or registry login is required:
 
 ```bash
 docker pull ghcr.io/arcadia-1/circuit-bench-openroad-asap7:1.0.0
-docker pull ghcr.io/arcadia-1/circuit-bench-ngspice-sky130:1.0.0
+docker pull ghcr.io/arcadia-1/circuit-bench-sky130-ngspice:2.0.1
 ```
 
 Run the local smoke checks after pulling:
@@ -38,9 +38,10 @@ The OpenROAD-ASAP7 image contains Ubuntu 24.04, OpenROAD
 `s20260301-180-gde415b2f0-dirty`, Python 3.12.3, and the pinned ASAP7 platform
 files used by Circuit-Bench digital timing tasks.
 
-The ngspice-Sky130 image contains ngspice 39, Python 3.11.2, and the pinned
-Sky130 continuous model library at
-`/opt/sky130/continuous/sky130.lib.spice`.
+The ngspice-Sky130 image contains ngspice 46, Python with NumPy, the pinned
+Sky130 continuous model library at `/opt/sky130/continuous/sky130.lib.spice`,
+and the official RF R/C, inductor, and varactor model trees under
+`/opt/sky130/rf`.
 
 These are toolchain images, not complete task images. A task repository adds
 its public starter files and, in the evaluator environment, its private
@@ -67,7 +68,7 @@ An operator can export both public images into one compressed archive:
 ```bash
 docker save \
   ghcr.io/arcadia-1/circuit-bench-openroad-asap7:1.0.0 \
-  ghcr.io/arcadia-1/circuit-bench-ngspice-sky130:1.0.0 \
+  ghcr.io/arcadia-1/circuit-bench-sky130-ngspice:2.0.1 \
   | zstd -T0 -6 -o circuit-bench-toolchains.tar.zst
 ```
 

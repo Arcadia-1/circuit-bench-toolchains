@@ -51,6 +51,21 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Reject an existing release tag
+        shell: bash
+        env:
+          VERSION: ${{ steps.version.outputs.value }}
+        run: |
+          set -euo pipefail
+          for IMAGE in \
+            ghcr.io/arcadia-1/circuit-bench-ngspice \
+            ghcr.io/arcadia-1/circuit-bench-sky130-ngspice; do
+            if docker buildx imagetools inspect "${IMAGE}:${VERSION}" >/dev/null 2>&1; then
+              echo "refusing to overwrite an existing immutable release: ${IMAGE}:${VERSION}" >&2
+              exit 1
+            fi
+          done
+
       - name: Build and publish ngspice
         id: ngspice
         uses: docker/build-push-action@v6
@@ -100,6 +115,7 @@ jobs:
             test -d "$SKY130_RF_ROOT"
           '
           docker run --rm \
+            --workdir /opt/sky130/continuous \
             -v "$PWD/tests:/smoke:ro" \
             "$IMAGE" \
             /opt/ngspice/bin/ngspice -b \
