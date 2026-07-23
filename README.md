@@ -1,9 +1,9 @@
 # Circuit-Bench Toolchains
 
 Public, pinned Docker toolchains used to build and verify Circuit-Bench tasks.
-The repository contains distribution metadata and smoke checks only. It does
-not contain benchmark tasks, reference solutions, hidden tests, model logs, or
-credentials.
+The repository contains the Docker build sources, release workflow,
+distribution metadata, and smoke checks. It does not contain benchmark tasks,
+reference solutions, hidden tests, model logs, or credentials.
 
 ## Images
 
@@ -45,6 +45,20 @@ Sky130 continuous model library at
 These are toolchain images, not complete task images. A task repository adds
 its public starter files and, in the evaluator environment, its private
 verification material as separate layers.
+
+## Build sources
+
+- `docker/ngspice.Dockerfile` builds ngspice 46 from a checksum-pinned source
+  archive.
+- `docker/ngspice-sky130.Dockerfile` adds the pinned Sky130 continuous and RF
+  model trees.
+- `.github/workflows/publish-images.yml` publishes versioned amd64 and arm64
+  manifests to GHCR, attaches provenance and SBOM attestations, runs a
+  transistor-level smoke simulation, and records the resulting manifest
+  digests.
+
+Published task Dockerfiles should consume the manifest digest recorded in
+`images.lock.json`, not just the human-readable release tag.
 
 ## Offline Transfer
 

@@ -1,0 +1,138 @@
+name: Publish toolchain images
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Immutable semantic version to publish, for example 2.0.0
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: publish-toolchains-${{ inputs.version }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+
+    steps:
+      - name: Check out sources
+        uses: actions/checkout@v4
+
+      - name: Validate version
+        id: version
+        shell: bash
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "version must be a semantic version such as 2.0.0" >&2
+            exit 1
+          fi
+          echo "value=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and publish ngspice
+        id: ngspice
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/ngspice.Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ghcr.io/arcadia-1/circuit-bench-ngspice:${{ steps.version.outputs.value }}
+          build-args: |
+            IMAGE_VERSION=${{ steps.version.outputs.value }}
+          cache-from: type=gha,scope=ngspice
+          cache-to: type=gha,mode=max,scope=ngspice
+          provenance: mode=max
+          sbom: true
+
+      - name: Build and publish ngspice with Sky130
+        id: sky130
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/ngspice-sky130.Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ghcr.io/arcadia-1/circuit-bench-ngspice-sky130:${{ steps.version.outputs.value }}
+          build-args: |
+            BASE_IMAGE=ghcr.io/arcadia-1/circuit-bench-ngspice@${{ steps.ngspice.outputs.digest }}
+            IMAGE_VERSION=${{ steps.version.outputs.value }}
+          cache-from: type=gha,scope=ngspice-sky130
+          cache-to: type=gha,mode=max,scope=ngspice-sky130
+          provenance: mode=max
+          sbom: true
+
+      - name: Smoke-test published Sky130 image
+        shell: bash
+        env:
+          IMAGE: ghcr.io/arcadia-1/circuit-bench-ngspice-sky130:${{ steps.version.outputs.value }}
+        run: |
+          set -euo pipefail
+          docker pull "$IMAGE"
+          docker run --rm "$IMAGE" bash -lc '
+            set -euo pipefail
+            test "$(command -v ngspice)" = /opt/ngspice/bin/ngspice
+            ngspice --version | grep -F "ngspice-46"
+            python3 -c "import numpy"
+            test -s "$SKY130_MODEL_LIB"
+            test -d "$SKY130_RF_ROOT"
+          '
+          docker run --rm \
+            -v "$PWD/tests:/smoke:ro" \
+            "$IMAGE" \
+            ngspice -b -o /tmp/smoke.log /smoke/ngspice-sky130-smoke.spice
+
+      - name: Record published manifest digests
+        shell: bash
+        env:
+          VERSION: ${{ steps.version.outputs.value }}
+          NGSPICE_DIGEST: ${{ steps.ngspice.outputs.digest }}
+          SKY130_DIGEST: ${{ steps.sky130.outputs.digest }}
+        run: |
+          set -euo pipefail
+          jq -n \
+            --arg version "$VERSION" \
+            --arg ngspice "$NGSPICE_DIGEST" \
+            --arg sky130 "$SKY130_DIGEST" \
+            '{
+              version: $version,
+              images: {
+                "circuit-bench-ngspice": $ngspice,
+                "circuit-bench-ngspice-sky130": $sky130
+              }
+            }' > published-digests.json
+          {
+            echo "## Published toolchain images"
+            echo
+            echo "- ngspice: \`$NGSPICE_DIGEST\`"
+            echo "- ngspice-sky130: \`$SKY130_DIGEST\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload digest record
+        uses: actions/upload-artifact@v4
+        with:
+          name: published-digests-${{ steps.version.outputs.value }}
+          path: published-digests.json
+          if-no-files-found: error
