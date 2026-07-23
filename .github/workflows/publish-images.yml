@@ -91,18 +91,20 @@ jobs:
         run: |
           set -euo pipefail
           docker pull "$IMAGE"
-          docker run --rm "$IMAGE" bash -lc '
+          docker run --rm "$IMAGE" /opt/ngspice/bin/ngspice --version \
+            | grep -F "ngspice-46"
+          docker run --rm "$IMAGE" python3 -c "import numpy"
+          docker run --rm "$IMAGE" bash -c '
             set -euo pipefail
-            test "$(command -v ngspice)" = /opt/ngspice/bin/ngspice
-            ngspice --version | grep -F "ngspice-46"
-            python3 -c "import numpy"
             test -s "$SKY130_MODEL_LIB"
             test -d "$SKY130_RF_ROOT"
           '
           docker run --rm \
             -v "$PWD/tests:/smoke:ro" \
             "$IMAGE" \
-            ngspice -b -o /tmp/smoke.log /smoke/ngspice-sky130-smoke.spice
+            /opt/ngspice/bin/ngspice -b \
+            -o /dev/stdout \
+            /smoke/ngspice-sky130-smoke.spice
 
       - name: Record published manifest digests
         shell: bash
