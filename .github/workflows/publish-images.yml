@@ -112,7 +112,8 @@ jobs:
           docker run --rm "$IMAGE" bash -c '
             set -euo pipefail
             test -s "$SKY130_MODEL_LIB"
-            test -d "$SKY130_RF_ROOT"
+            test -d "$SKY130_PDK_ROOT/libs.tech/ngspice"
+            test -d "$SKY130_PDK_ROOT/libs.ref/sky130_fd_pr/spice"
           '
           docker run --rm \
             --workdir /opt/sky130/continuous \
@@ -121,6 +122,12 @@ jobs:
             /opt/ngspice/bin/ngspice -b \
             -o /dev/stdout \
             /smoke/ngspice-sky130-smoke.spice
+          docker run --rm \
+            -v "$PWD/tests:/smoke:ro" \
+            "$IMAGE" \
+            /opt/ngspice/bin/ngspice -b \
+            -o /dev/stdout \
+            /smoke/ngspice-sky130-full-pdk-smoke.spice
 
       - name: Record published manifest digests
         shell: bash
