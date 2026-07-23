@@ -15,8 +15,10 @@ RUN apt-get update \
  && rm -rf /var/lib/apt/lists/*
 
 RUN mkdir -p /tmp/sky130 /opt/sky130/continuous \
-      /opt/sky130/rf/libs.tech/ngspice/corners \
-      /opt/sky130/rf/libs.ref/sky130_fd_pr/spice \
+      /opt/sky130/pdk/sky130A/libs.tech \
+      /opt/sky130/pdk/sky130A/libs.ref/sky130_fd_pr \
+      /opt/sky130/rf/libs.tech \
+      /opt/sky130/rf/libs.ref/sky130_fd_pr \
  && curl --fail --location --retry 5 --retry-all-errors \
       --output /tmp/sky130-common.tar.zst \
       "https://github.com/chipfoundry/volare/releases/download/sky130-${SKY130_COMMIT}/common.tar.zst" \
@@ -29,20 +31,10 @@ RUN mkdir -p /tmp/sky130 /opt/sky130/continuous \
  && tar --use-compress-program=unzstd -xf /tmp/sky130-fd-pr.tar.zst -C /tmp/sky130 \
  && SRC=/tmp/sky130/sky130A \
  && cp -a "${SRC}/libs.tech/combined/continuous/." /opt/sky130/continuous/ \
- && cp -a "${SRC}/libs.tech/ngspice/r+c" /opt/sky130/rf/libs.tech/ngspice/ \
- && cp -a "${SRC}/libs.tech/ngspice/parameters" /opt/sky130/rf/libs.tech/ngspice/ \
- && cp "${SRC}/libs.tech/ngspice/sky130_fd_pr__model__r+c.model.spice" /opt/sky130/rf/libs.tech/ngspice/ \
- && cp "${SRC}/libs.tech/ngspice/sky130_fd_pr__model__inductors.model.spice" /opt/sky130/rf/libs.tech/ngspice/ \
- && for CORNER in tt ff ss fs sf; do \
-      mkdir -p "/opt/sky130/rf/libs.tech/ngspice/corners/${CORNER}"; \
-      cp "${SRC}/libs.tech/ngspice/corners/${CORNER}/nonfet.spice" "/opt/sky130/rf/libs.tech/ngspice/corners/${CORNER}/"; \
-    done \
- && cp "${SRC}/libs.ref/sky130_fd_pr/spice/sky130_fd_pr__cap_var_lvt.model.spice" /opt/sky130/rf/libs.ref/sky130_fd_pr/spice/ \
- && cp "${SRC}/libs.ref/sky130_fd_pr/spice/sky130_fd_pr__ind_03_90.model.spice" /opt/sky130/rf/libs.ref/sky130_fd_pr/spice/ \
- && cp "${SRC}/libs.ref/sky130_fd_pr/spice/sky130_fd_pr__ind_05_125.model.spice" /opt/sky130/rf/libs.ref/sky130_fd_pr/spice/ \
- && cp "${SRC}/libs.ref/sky130_fd_pr/spice/sky130_fd_pr__ind_05_220.model.spice" /opt/sky130/rf/libs.ref/sky130_fd_pr/spice/ \
- && cp "${SRC}/libs.ref/sky130_fd_pr/spice/sky130_fd_pr__res_generic_nd.model.spice" /opt/sky130/rf/libs.ref/sky130_fd_pr/spice/ \
- && cp "${SRC}/libs.ref/sky130_fd_pr/spice/sky130_fd_pr__res_generic_pd.model.spice" /opt/sky130/rf/libs.ref/sky130_fd_pr/spice/
+ && cp -a "${SRC}/libs.tech/ngspice" /opt/sky130/pdk/sky130A/libs.tech/ \
+ && cp -a "${SRC}/libs.ref/sky130_fd_pr/spice" /opt/sky130/pdk/sky130A/libs.ref/sky130_fd_pr/ \
+ && ln -s /opt/sky130/pdk/sky130A/libs.tech/ngspice /opt/sky130/rf/libs.tech/ngspice \
+ && ln -s /opt/sky130/pdk/sky130A/libs.ref/sky130_fd_pr/spice /opt/sky130/rf/libs.ref/sky130_fd_pr/spice
 
 FROM ${BASE_IMAGE}
 
@@ -52,12 +44,16 @@ ARG SKY130_COMMIT=c6d73a35f524070e85faff4a6a9eef49553ebc2b
 COPY --from=sky130-models /opt/sky130 /opt/sky130
 
 ENV SKY130_MODEL_LIB=/opt/sky130/continuous/sky130.lib.spice \
-    SKY130_RF_ROOT=/opt/sky130/rf
+    SKY130_RF_ROOT=/opt/sky130/rf \
+    SKY130_PDK_ROOT=/opt/sky130/pdk/sky130A
 
 RUN test "$(command -v ngspice)" = /opt/ngspice/bin/ngspice \
  && ngspice --version | grep -F "ngspice-46" \
  && python3 -c 'import numpy' \
  && test -f "${SKY130_MODEL_LIB}" \
+ && test -f "${SKY130_PDK_ROOT}/libs.tech/ngspice/sky130.lib.spice" \
+ && test -f "${SKY130_PDK_ROOT}/libs.tech/ngspice/corners/tt/specialized_cells.spice" \
+ && test -f "${SKY130_PDK_ROOT}/libs.ref/sky130_fd_pr/spice/sky130_fd_pr__cap_var_hvt.model.spice" \
  && test -f "${SKY130_RF_ROOT}/libs.tech/ngspice/sky130_fd_pr__model__inductors.model.spice" \
  && test -f "${SKY130_RF_ROOT}/libs.ref/sky130_fd_pr/spice/sky130_fd_pr__cap_var_lvt.model.spice" \
  && test -f "${SKY130_RF_ROOT}/libs.ref/sky130_fd_pr/spice/sky130_fd_pr__ind_03_90.model.spice" \
