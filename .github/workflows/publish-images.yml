@@ -112,7 +112,8 @@ jobs:
           docker run --rm "$IMAGE" bash -c '
             set -euo pipefail
             test -s "$SKY130_MODEL_LIB"
-            test -d "$SKY130_RF_ROOT"
+            test -d "$SKY130_PDK_ROOT/libs.tech/ngspice"
+            test -d "$SKY130_PDK_ROOT/libs.ref/sky130_fd_pr/spice"
           '
           docker run --rm \
             --workdir /opt/sky130/continuous \
