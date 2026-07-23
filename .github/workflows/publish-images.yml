@@ -75,7 +75,7 @@ jobs:
           file: docker/ngspice-sky130.Dockerfile
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: ghcr.io/arcadia-1/circuit-bench-ngspice-sky130:${{ steps.version.outputs.value }}
+          tags: ghcr.io/arcadia-1/circuit-bench-sky130-ngspice:${{ steps.version.outputs.value }}
           build-args: |
             BASE_IMAGE=ghcr.io/arcadia-1/circuit-bench-ngspice@${{ steps.ngspice.outputs.digest }}
             IMAGE_VERSION=${{ steps.version.outputs.value }}
@@ -87,7 +87,7 @@ jobs:
       - name: Smoke-test published Sky130 image
         shell: bash
         env:
-          IMAGE: ghcr.io/arcadia-1/circuit-bench-ngspice-sky130:${{ steps.version.outputs.value }}
+          IMAGE: ghcr.io/arcadia-1/circuit-bench-sky130-ngspice:${{ steps.version.outputs.value }}
         run: |
           set -euo pipefail
           docker pull "$IMAGE"
@@ -120,7 +120,7 @@ jobs:
               version: $version,
               images: {
                 "circuit-bench-ngspice": $ngspice,
-                "circuit-bench-ngspice-sky130": $sky130
+                "circuit-bench-sky130-ngspice": $sky130
               }
             }' > published-digests.json
           {
