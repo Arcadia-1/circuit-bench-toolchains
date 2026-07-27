@@ -59,7 +59,8 @@ jobs:
           set -euo pipefail
           for IMAGE in \
             ghcr.io/arcadia-1/circuit-bench-ngspice \
-            ghcr.io/arcadia-1/circuit-bench-sky130-ngspice; do
+            ghcr.io/arcadia-1/circuit-bench-sky130-ngspice \
+            ghcr.io/arcadia-1/circuit-bench-rtl-forge-openroad-asap7; do
             if docker buildx imagetools inspect "${IMAGE}:${VERSION}" >/dev/null 2>&1; then
               echo "refusing to overwrite an existing immutable release: ${IMAGE}:${VERSION}" >&2
               exit 1
@@ -99,6 +100,41 @@ jobs:
           provenance: mode=max
           sbom: true
 
+      - name: Build and publish RTL-Forge OpenROAD ASAP7
+        id: rtlforge
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/rtl-forge-openroad-asap7.Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: ghcr.io/arcadia-1/circuit-bench-rtl-forge-openroad-asap7:${{ steps.version.outputs.value }}
+          build-args: |
+            IMAGE_VERSION=${{ steps.version.outputs.value }}
+          cache-from: type=gha,scope=rtlforge-openroad-asap7
+          cache-to: type=gha,mode=max,scope=rtlforge-openroad-asap7
+          provenance: mode=max
+          sbom: true
+
+      - name: Smoke-test published RTL-Forge image
+        shell: bash
+        env:
+          IMAGE: ghcr.io/arcadia-1/circuit-bench-rtl-forge-openroad-asap7:${{ steps.version.outputs.value }}
+        run: |
+          set -euo pipefail
+          docker pull "$IMAGE"
+          docker run --rm "$IMAGE" bash -lc '
+            set -euo pipefail
+            test -x "$OPENROAD_EXE"
+            "$OPENROAD_EXE" -version | grep -F "26Q2-2123-g8f0a892fa2"
+            yosys -V | grep -F "Yosys 0.66"
+            iverilog -V 2>&1 | grep -F "Icarus Verilog version 14.0"
+            python3 --version
+            test -f "$ASAP7_PLATFORM_DIR/lef/asap7_tech_1x_201209.lef"
+            test -f "$ASAP7_PLATFORM_DIR/lib/NLDM/asap7sc7p5t_SEQ_RVT_FF_nldm_220123.lib"
+            ! ldd "$OPENROAD_EXE" 2>&1 | grep -F "not found"
+          '
+
       - name: Smoke-test published Sky130 image
         shell: bash
         env:
@@ -135,17 +171,20 @@ jobs:
           VERSION: ${{ steps.version.outputs.value }}
           NGSPICE_DIGEST: ${{ steps.ngspice.outputs.digest }}
           SKY130_DIGEST: ${{ steps.sky130.outputs.digest }}
+          RTL_FORGE_DIGEST: ${{ steps.rtlforge.outputs.digest }}
         run: |
           set -euo pipefail
           jq -n \
             --arg version "$VERSION" \
             --arg ngspice "$NGSPICE_DIGEST" \
             --arg sky130 "$SKY130_DIGEST" \
+            --arg rtlforge "$RTL_FORGE_DIGEST" \
             '{
               version: $version,
               images: {
                 "circuit-bench-ngspice": $ngspice,
-                "circuit-bench-sky130-ngspice": $sky130
+                "circuit-bench-sky130-ngspice": $sky130,
+                "circuit-bench-rtl-forge-openroad-asap7": $rtlforge
               }
             }' > published-digests.json
           {
@@ -153,6 +192,7 @@ jobs:
             echo
             echo "- ngspice: \`$NGSPICE_DIGEST\`"
             echo "- ngspice-sky130: \`$SKY130_DIGEST\`"
+            echo "- rtl-forge-openroad-asap7: \`$RTL_FORGE_DIGEST\`"
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload digest record

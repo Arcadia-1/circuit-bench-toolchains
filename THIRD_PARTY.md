@@ -13,3 +13,8 @@ Refer to each upstream project for its authoritative source and license terms:
 
 The image tags in this repository identify the exact Circuit-Bench runtime
 snapshots. They are not upstream project releases.
+
+The RTL-Forge OpenROAD/ASAP7 image is assembled from the pinned public
+`circuit-bench-openroad-asap7:1.0.0` base digest. That base carries the
+`2026-06-20` OSS CAD Suite payload; consult the upstream repositories for the
+individual component licenses.

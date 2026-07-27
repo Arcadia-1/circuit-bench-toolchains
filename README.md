@@ -10,6 +10,7 @@ reference solutions, hidden tests, model logs, or credentials.
 | Tool and process | Image |
 | --- | --- |
 | OpenROAD and ASAP7 | `ghcr.io/arcadia-1/circuit-bench-openroad-asap7:1.0.0` |
+| RTL-Forge OpenROAD, ASAP7, Yosys, and Icarus | `ghcr.io/arcadia-1/circuit-bench-rtl-forge-openroad-asap7:1.0.0` |
 | ngspice and Sky130 | `ghcr.io/arcadia-1/circuit-bench-sky130-ngspice:2.0.2` |
 
 The tags are immutable public release tags. For reproducible automation, use
@@ -22,6 +23,7 @@ No GitHub account or registry login is required:
 
 ```bash
 docker pull ghcr.io/arcadia-1/circuit-bench-openroad-asap7:1.0.0
+docker pull ghcr.io/arcadia-1/circuit-bench-rtl-forge-openroad-asap7:1.0.0
 docker pull ghcr.io/arcadia-1/circuit-bench-sky130-ngspice:2.0.2
 ```
 
@@ -37,6 +39,22 @@ The OpenROAD-ASAP7 image contains Ubuntu 24.04, OpenROAD
 `26Q2-2123-g8f0a892fa2`, Icarus Verilog 14.0 development snapshot
 `s20260301-180-gde415b2f0-dirty`, Python 3.12.3, and the pinned ASAP7 platform
 files used by Circuit-Bench digital timing tasks.
+
+The RTL-Forge image is the public compatibility runtime for RTL-Forge timing
+tasks. It is a thin, fixed-digest compatibility release over the pinned
+OpenROAD/ASAP7 image, which already carries OSS CAD Suite `2026-06-20`, Yosys,
+and Icarus Verilog. It exposes the runtime contract used by RTL-Forge:
+
+```text
+OPENROAD_EXE=/opt/openroad/bin/openroad
+ASAP7_PLATFORM_DIR=/opt/orfs/flow/platforms/asap7
+PATH=/opt/openroad/bin:/opt/oss-cad-suite/bin:$PATH
+```
+
+This release is `linux/amd64`, matching the published OpenROAD base and the
+RTL-Forge CI environment. It is a toolchain-only image: it contains no task
+source, candidate solution, verifier, hidden test, evaluation record, private
+platform path, or service credential.
 
 The ngspice-Sky130 image contains ngspice 46, Python with NumPy, and the
 pinned Sky130 continuous model library at
@@ -64,6 +82,9 @@ verification material as separate layers.
 - `docker/ngspice-sky130.Dockerfile` adds the pinned Sky130 continuous model
   library plus the complete official ngspice configuration and device-model
   trees.
+- `docker/rtl-forge-openroad-asap7.Dockerfile` pins the public OpenROAD/ASAP7
+  base digest and establishes the RTL-Forge runtime contract without copying
+  a second copy of the existing tool payload.
 - `.github/workflows/publish-images.yml` publishes versioned amd64 and arm64
   manifests to GHCR, attaches provenance and SBOM attestations, runs a
   transistor-level smoke simulation, and records the resulting manifest
@@ -79,6 +100,7 @@ An operator can export both public images into one compressed archive:
 ```bash
 docker save \
   ghcr.io/arcadia-1/circuit-bench-openroad-asap7:1.0.0 \
+  ghcr.io/arcadia-1/circuit-bench-rtl-forge-openroad-asap7:1.0.0 \
   ghcr.io/arcadia-1/circuit-bench-sky130-ngspice:2.0.2 \
   | zstd -T0 -6 -o circuit-bench-toolchains.tar.zst
 ```
