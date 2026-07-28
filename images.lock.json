@@ -14,8 +14,8 @@
     },
     {
       "name": "ngspice-sky130",
-      "image": "ghcr.io/arcadia-1/circuit-bench-sky130-ngspice:2.0.3",
-      "digest": "sha256:cf5ddc58994a8a4cd56bbb6f8e5231073ea4412bb2426d68889b83f249fa228d",
+      "image": "ghcr.io/arcadia-1/circuit-bench-sky130-ngspice:2.0.4",
+      "digest": "sha256:1eb7eb0028f6adc6610ee1b53680b6f9e56a79fb1d2179cd3fe924ab3394895d",
       "components": {
         "ngspice": "46",
         "python": "3.11.2",
