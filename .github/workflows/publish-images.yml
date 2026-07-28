@@ -106,8 +106,10 @@ jobs:
         run: |
           set -euo pipefail
           docker pull "$IMAGE"
-          docker run --rm "$IMAGE" /opt/ngspice/bin/ngspice --version \
-            | grep -F "ngspice-46"
+          docker run --rm "$IMAGE" bash -lc '
+            test "$(command -v ngspice)" = /usr/local/bin/ngspice
+            ngspice --version | grep -F "ngspice-46"
+          '
           docker run --rm "$IMAGE" python3 -c "import numpy"
           docker run --rm "$IMAGE" bash -c '
             set -euo pipefail

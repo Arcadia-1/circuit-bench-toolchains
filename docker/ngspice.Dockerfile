@@ -65,8 +65,10 @@ COPY --from=ngspice-builder /opt/ngspice /opt/ngspice
 
 ENV PATH=/opt/ngspice/bin:${PATH}
 
-RUN test "$(command -v ngspice)" = /opt/ngspice/bin/ngspice \
+RUN ln -s /opt/ngspice/bin/ngspice /usr/local/bin/ngspice \
+ && test "$(command -v ngspice)" = /opt/ngspice/bin/ngspice \
  && ngspice --version | grep -F "ngspice-${NGSPICE_VERSION}" \
+ && bash -lc 'test "$(command -v ngspice)" = /usr/local/bin/ngspice' \
  && python3 -c 'import numpy'
 
 LABEL org.opencontainers.image.source="https://github.com/Arcadia-1/circuit-bench-toolchains" \

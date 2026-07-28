@@ -10,7 +10,7 @@ reference solutions, hidden tests, model logs, or credentials.
 | Tool and process | Image |
 | --- | --- |
 | OpenROAD and ASAP7 | `ghcr.io/arcadia-1/circuit-bench-openroad-asap7:1.0.0` |
-| ngspice and Sky130 | `ghcr.io/arcadia-1/circuit-bench-sky130-ngspice:2.0.4` |
+| ngspice and Sky130 | `ghcr.io/arcadia-1/circuit-bench-sky130-ngspice:2.0.5` |
 
 The tags are immutable public release tags. For reproducible automation, use
 the registry digests recorded in `images.lock.json` rather than a mutable alias.
@@ -22,7 +22,7 @@ No GitHub account or registry login is required:
 
 ```bash
 docker pull ghcr.io/arcadia-1/circuit-bench-openroad-asap7:1.0.0
-docker pull ghcr.io/arcadia-1/circuit-bench-sky130-ngspice:2.0.4
+docker pull ghcr.io/arcadia-1/circuit-bench-sky130-ngspice:2.0.5
 ```
 
 Run the local smoke checks after pulling:
@@ -53,6 +53,10 @@ official PVT entry points and device models, including RF R/C, inductors,
 varactors, MIM/VPP capacitors, diodes, BJT, ESD, and special/high-voltage
 devices.
 
+The ngspice executable is installed at `/opt/ngspice/bin/ngspice` and exposed
+as `/usr/local/bin/ngspice`, so the `ngspice` command is available from both
+ordinary and login shells.
+
 These are toolchain images, not complete task images. A task repository adds
 its public benchmark tools and starter files and, in the evaluator environment,
 its private verification material as separate layers. Benchmark policy tools
@@ -80,7 +84,7 @@ An operator can export both public images into one compressed archive:
 ```bash
 docker save \
   ghcr.io/arcadia-1/circuit-bench-openroad-asap7:1.0.0 \
-  ghcr.io/arcadia-1/circuit-bench-sky130-ngspice:2.0.4 \
+  ghcr.io/arcadia-1/circuit-bench-sky130-ngspice:2.0.5 \
   | zstd -T0 -6 -o circuit-bench-toolchains.tar.zst
 ```
 
