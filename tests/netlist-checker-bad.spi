@@ -1,0 +1,3 @@
+.subckt dut input output
+BOUT output 0 v=tanh(v(input))
+.ends dut
