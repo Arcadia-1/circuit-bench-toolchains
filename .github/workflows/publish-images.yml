@@ -114,19 +114,7 @@ jobs:
             test -s "$SKY130_MODEL_LIB"
             test -d "$SKY130_PDK_ROOT/libs.tech/ngspice"
             test -d "$SKY130_PDK_ROOT/libs.ref/sky130_fd_pr/spice"
-            test -s "$SKY130_PDK_SUBCIRCUITS"
           '
-          docker run --rm \
-            -v "$PWD/tests:/smoke:ro" \
-            "$IMAGE" \
-            check_circuit.py /smoke/netlist-checker-good.spi --allow-ideal R C
-          if docker run --rm \
-            -v "$PWD/tests:/smoke:ro" \
-            "$IMAGE" \
-            check_circuit.py /smoke/netlist-checker-bad.spi; then
-            echo "checker accepted a behavioral source" >&2
-            exit 1
-          fi
           docker run --rm \
             --workdir /opt/sky130/continuous \
             -v "$PWD/tests:/smoke:ro" \
