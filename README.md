@@ -10,7 +10,7 @@ reference solutions, hidden tests, model logs, or credentials.
 | Tool and process | Image |
 | --- | --- |
 | OpenROAD and ASAP7 | `ghcr.io/arcadia-1/circuit-bench-openroad-asap7:1.0.0` |
-| ngspice and Sky130 | `ghcr.io/arcadia-1/circuit-bench-sky130-ngspice:2.0.2` |
+| ngspice and Sky130 | `ghcr.io/arcadia-1/circuit-bench-sky130-ngspice:2.0.3` |
 
 The tags are immutable public release tags. For reproducible automation, use
 the registry digests recorded in `images.lock.json` rather than a mutable alias.
@@ -22,7 +22,7 @@ No GitHub account or registry login is required:
 
 ```bash
 docker pull ghcr.io/arcadia-1/circuit-bench-openroad-asap7:1.0.0
-docker pull ghcr.io/arcadia-1/circuit-bench-sky130-ngspice:2.0.2
+docker pull ghcr.io/arcadia-1/circuit-bench-sky130-ngspice:2.0.3
 ```
 
 Run the local smoke checks after pulling:
@@ -53,6 +53,20 @@ official PVT entry points and device models, including RF R/C, inductors,
 varactors, MIM/VPP capacitors, diodes, BJT, ESD, and special/high-voltage
 devices.
 
+The image also installs the shared netlist checker as `check_circuit.py`. Its
+official SKY130 subcircuit list is fixed with the PDK snapshot:
+
+```bash
+check_circuit.py circuit.spi
+check_circuit.py circuit.spi --allow-ideal R C
+check_circuit.py circuit.spi --allow-ideal R C L
+check_circuit.py circuit.spi --allow-ideal R C S
+```
+
+External `X` instances must name an official SKY130 wrapper. Local subcircuits
+may be nested, but every branch must end in an official wrapper or an explicitly
+allowed ideal R, C, L, or S element.
+
 These are toolchain images, not complete task images. A task repository adds
 its public starter files and, in the evaluator environment, its private
 verification material as separate layers.
@@ -79,7 +93,7 @@ An operator can export both public images into one compressed archive:
 ```bash
 docker save \
   ghcr.io/arcadia-1/circuit-bench-openroad-asap7:1.0.0 \
-  ghcr.io/arcadia-1/circuit-bench-sky130-ngspice:2.0.2 \
+  ghcr.io/arcadia-1/circuit-bench-sky130-ngspice:2.0.3 \
   | zstd -T0 -6 -o circuit-bench-toolchains.tar.zst
 ```
 
