@@ -4,7 +4,7 @@ set -euo pipefail
 docker_cmd="${DOCKER:-docker}"
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 openroad_image="${OPENROAD_IMAGE:-ghcr.io/arcadia-1/circuit-bench-openroad-asap7:1.0.0}"
-ngspice_image="${NGSPICE_IMAGE:-ghcr.io/arcadia-1/circuit-bench-sky130-ngspice:2.0.4}"
+ngspice_image="${NGSPICE_IMAGE:-ghcr.io/arcadia-1/circuit-bench-sky130-ngspice:2.0.6}"
 expected_ngspice_version="${EXPECTED_NGSPICE_VERSION:-46}"
 
 "$docker_cmd" pull "$openroad_image"
