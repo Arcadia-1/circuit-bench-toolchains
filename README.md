@@ -53,14 +53,18 @@ official PVT entry points and device models, including RF R/C, inductors,
 varactors, MIM/VPP capacitors, diodes, BJT, ESD, and special/high-voltage
 devices.
 
+The image also includes the generic `check_circuit.py` netlist allowlist tool.
+Its Sky130 subcircuit catalog is selected by `SKY130_PDK_SUBCIRCUITS` and is
+versioned with the image and PDK.
+
 The ngspice executable is installed at `/opt/ngspice/bin/ngspice` and exposed
 as `/usr/local/bin/ngspice`, so the `ngspice` command is available from both
 ordinary and login shells.
 
 These are toolchain images, not complete task images. A task repository adds
-its public benchmark tools and starter files and, in the evaluator environment,
-its private verification material as separate layers. Benchmark policy tools
-are intentionally not coupled to the stable simulator and PDK image.
+its starter files and task-specific topology, scoring, and verification rules
+as separate layers. The bundled checker only validates generic netlist syntax
+and approved Sky130/ideal-element leaves.
 
 ## Build sources
 
