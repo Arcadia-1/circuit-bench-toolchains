@@ -114,9 +114,15 @@ jobs:
           docker run --rm "$IMAGE" bash -c '
             set -euo pipefail
             test -s "$SKY130_MODEL_LIB"
+            test -x /usr/local/bin/check_circuit.py
+            test -s "$SKY130_PDK_SUBCIRCUITS"
             test -d "$SKY130_PDK_ROOT/libs.tech/ngspice"
             test -d "$SKY130_PDK_ROOT/libs.ref/sky130_fd_pr/spice"
           '
+          docker run --rm \
+            -v "$PWD/tests:/smoke:ro" \
+            "$IMAGE" \
+            check_circuit.py /smoke/netlist-checker-smoke.spi
           docker run --rm \
             --workdir /opt/sky130/continuous \
             -v "$PWD/tests:/smoke:ro" \
