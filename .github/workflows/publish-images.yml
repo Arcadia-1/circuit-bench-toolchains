@@ -38,6 +38,10 @@ jobs:
           fi
           echo "value=$VERSION" >> "$GITHUB_OUTPUT"
 
+      - name: Test the netlist checker source
+        shell: bash
+        run: python3 -m unittest discover -s tests -p 'test_*.py' -v
+
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
 
@@ -123,6 +127,11 @@ jobs:
             -v "$PWD/tests:/smoke:ro" \
             "$IMAGE" \
             check_circuit.py /smoke/netlist-checker-smoke.spi
+          docker run --rm \
+            -e CHECK_CIRCUIT=/usr/local/bin/check_circuit.py \
+            -v "$PWD:/source:ro" \
+            "$IMAGE" \
+            python3 /source/tests/test_check_circuit.py
           docker run --rm \
             --workdir /opt/sky130/continuous \
             -v "$PWD/tests:/smoke:ro" \

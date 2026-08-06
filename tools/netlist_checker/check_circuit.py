@@ -2,12 +2,33 @@
 """Check that a circuit uses approved PDK and ideal elements."""
 
 import argparse
+import math
 import os
+import re
 from pathlib import Path
 
 
 IDEAL_ELEMENTS = {"R", "C", "L"}
+ALLOWED_DIRECTIVES = {".subckt", ".ends"}
 SOURCE_PDK_LIST = Path(__file__).with_name("sky130_pdk_subcircuits.txt")
+NUMBER_RE = re.compile(
+    r"^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?[a-z]*$",
+    re.IGNORECASE,
+)
+SCALE_FACTORS = {
+    "t": 1e12,
+    "g": 1e9,
+    "meg": 1e6,
+    "k": 1e3,
+    "m": 1e-3,
+    "u": 1e-6,
+    "n": 1e-9,
+    "p": 1e-12,
+    "f": 1e-15,
+    "mil": 25.4e-6,
+}
+POSITIVE_PARAMETERS = {"l", "w", "nf", "m", "mult", "mf"}
+NONNEGATIVE_PARAMETERS = {"ad", "as", "pd", "ps"}
 
 
 def logical_lines(path: Path):
@@ -28,6 +49,51 @@ def x_target(text: str) -> str:
             break
         target = word
     return target.lower()
+
+
+def spice_number(token: str) -> float | None:
+    """Parse a finite SPICE numeric literal without evaluating expressions."""
+    value = token.strip().lower()
+    if not NUMBER_RE.fullmatch(value):
+        return None
+    match = re.match(
+        r"^([+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?)([a-z]*)$",
+        value,
+    )
+    if match is None:
+        return None
+    number_text, suffix = match.groups()
+    scale = 1.0
+    matched_suffix = not suffix
+    for prefix in ("meg", "mil", "t", "g", "k", "m", "u", "n", "p", "f"):
+        if suffix.startswith(prefix):
+            scale = SCALE_FACTORS[prefix]
+            matched_suffix = True
+            break
+    if not matched_suffix:
+        return None
+    try:
+        number = float(number_text) * scale
+    except ValueError:
+        return None
+    return number if math.isfinite(number) else None
+
+
+def assignment_violations(words: list[str]) -> list[str]:
+    violations = []
+    for word in words:
+        if "=" not in word:
+            continue
+        name, value_text = word.split("=", 1)
+        name = name.lower()
+        value = spice_number(value_text)
+        if not name or value is None:
+            violations.append(f"parameter {word} is not a finite numeric literal")
+        elif name in POSITIVE_PARAMETERS and value <= 0:
+            violations.append(f"parameter {name} must be positive")
+        elif name in NONNEGATIVE_PARAMETERS and value < 0:
+            violations.append(f"parameter {name} must be non-negative")
+    return violations
 
 
 def main() -> int:
@@ -55,25 +121,47 @@ def main() -> int:
     has_leaf = {name: False for name in local_subcircuits}
     violations = []
     current_subcircuit = None
+    seen_subcircuits = set()
 
     for name in sorted(local_subcircuits & pdk_subcircuits):
         violations.append((0, f"local subcircuit shadows PDK name {name}", name))
 
     for number, text in lines:
-        lower = text.lower()
-        if lower.startswith(".subckt "):
-            current_subcircuit = lower.split()[1]
+        if not text or text[0] in "*;":
             continue
-        if lower.startswith(".ends"):
-            current_subcircuit = None
-            continue
-        if not text or text[0] in "*;.":
+        if text.startswith("."):
+            words = text.split()
+            directive = words[0].lower()
+            if directive not in ALLOWED_DIRECTIVES:
+                violations.append((number, f"disallowed directive {directive}", text))
+            elif directive == ".subckt":
+                if len(words) < 2:
+                    violations.append((number, "malformed .subckt", text))
+                elif current_subcircuit is not None:
+                    violations.append((number, "nested .subckt", text))
+                elif words[1].lower() in seen_subcircuits:
+                    violations.append((number, "duplicate .subckt", text))
+                else:
+                    current_subcircuit = words[1].lower()
+                    seen_subcircuits.add(current_subcircuit)
+                    for reason in assignment_violations(words[2:]):
+                        violations.append((number, reason, text))
+            elif current_subcircuit is None:
+                violations.append((number, ".ends outside subcircuit", text))
+            else:
+                if len(words) > 1 and words[1].lower() != current_subcircuit:
+                    violations.append((number, ".ends name does not match .subckt", text))
+                current_subcircuit = None
             continue
         kind = text[0].upper()
+        if current_subcircuit is None:
+            violations.append((number, "element outside subcircuit", text))
         if kind not in allowed_elements:
             violations.append((number, f"disallowed {kind}", text))
         elif kind == "X":
             target = x_target(text)
+            for reason in assignment_violations(text.split()[1:]):
+                violations.append((number, reason, text))
             if target in local_subcircuits:
                 if current_subcircuit:
                     local_references[current_subcircuit].add(target)
@@ -82,8 +170,23 @@ def main() -> int:
                     has_leaf[current_subcircuit] = True
             else:
                 violations.append((number, f"unknown subcircuit {target or '?'}", text))
-        elif current_subcircuit:
-            has_leaf[current_subcircuit] = True
+        else:
+            words = text.split()
+            if len(words) < 4:
+                violations.append((number, f"malformed {kind}", text))
+            else:
+                value = spice_number(words[3])
+                if value is None:
+                    violations.append((number, f"{kind} value is not a finite numeric literal", text))
+                elif value <= 0:
+                    violations.append((number, f"{kind} value must be positive", text))
+                for reason in assignment_violations(words[4:]):
+                    violations.append((number, reason, text))
+            if current_subcircuit:
+                has_leaf[current_subcircuit] = True
+
+    if current_subcircuit is not None:
+        violations.append((0, f"subcircuit {current_subcircuit} is missing .ends", current_subcircuit))
 
     resolved = {}
 
