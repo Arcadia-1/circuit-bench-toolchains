@@ -10,7 +10,7 @@ reference solutions, hidden tests, model logs, or credentials.
 | Tool and process | Image |
 | --- | --- |
 | OpenROAD and ASAP7 | `ghcr.io/arcadia-1/circuit-bench-openroad-asap7:1.0.0` |
-| ngspice and Sky130 | `ghcr.io/arcadia-1/circuit-bench-sky130-ngspice:2.0.6` |
+| ngspice and Sky130 | `ghcr.io/arcadia-1/circuit-bench-sky130-ngspice:2.0.7` |
 
 The tags are immutable public release tags. For reproducible automation, use
 the registry digests recorded in `images.lock.json` rather than a mutable alias.
@@ -22,7 +22,7 @@ No GitHub account or registry login is required:
 
 ```bash
 docker pull ghcr.io/arcadia-1/circuit-bench-openroad-asap7:1.0.0
-docker pull ghcr.io/arcadia-1/circuit-bench-sky130-ngspice:2.0.6
+docker pull ghcr.io/arcadia-1/circuit-bench-sky130-ngspice:2.0.7
 ```
 
 Run the local smoke checks after pulling:
@@ -88,7 +88,7 @@ An operator can export both public images into one compressed archive:
 ```bash
 docker save \
   ghcr.io/arcadia-1/circuit-bench-openroad-asap7:1.0.0 \
-  ghcr.io/arcadia-1/circuit-bench-sky130-ngspice:2.0.6 \
+  ghcr.io/arcadia-1/circuit-bench-sky130-ngspice:2.0.7 \
   | zstd -T0 -6 -o circuit-bench-toolchains.tar.zst
 ```
 
