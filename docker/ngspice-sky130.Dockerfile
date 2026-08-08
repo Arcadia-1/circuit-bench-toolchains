@@ -38,19 +38,14 @@ ARG IMAGE_VERSION=dev
 ARG SKY130_COMMIT=c6d73a35f524070e85faff4a6a9eef49553ebc2b
 
 COPY --from=sky130-models /opt/sky130 /opt/sky130
-COPY tools/netlist_checker/check_circuit.py /usr/local/bin/check_circuit.py
-COPY tools/netlist_checker/sky130_pdk_subcircuits.txt /opt/circuit-bench/sky130_pdk_subcircuits.txt
 
 ENV SKY130_MODEL_LIB=/opt/sky130/continuous/sky130.lib.spice \
-    SKY130_PDK_ROOT=/opt/sky130/pdk/sky130A \
-    SKY130_PDK_SUBCIRCUITS=/opt/circuit-bench/sky130_pdk_subcircuits.txt
+    SKY130_PDK_ROOT=/opt/sky130/pdk/sky130A
 
-RUN chmod 0755 /usr/local/bin/check_circuit.py \
- && test "$(command -v ngspice)" = /opt/ngspice/bin/ngspice \
+RUN test "$(command -v ngspice)" = /opt/ngspice/bin/ngspice \
  && ngspice --version | grep -F "ngspice-46" \
  && python3 -c 'import numpy' \
- && test -x /usr/local/bin/check_circuit.py \
- && test -s "${SKY130_PDK_SUBCIRCUITS}" \
+ && test ! -e /usr/local/bin/check_circuit.py \
  && test -f "${SKY130_MODEL_LIB}" \
  && test -f "${SKY130_PDK_ROOT}/libs.tech/ngspice/sky130.lib.spice" \
  && test -f "${SKY130_PDK_ROOT}/libs.tech/ngspice/corners/tt/specialized_cells.spice" \

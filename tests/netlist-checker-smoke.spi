@@ -1,5 +1,0 @@
-* Generic netlist-checker smoke test
-.subckt inverter vss vdd vin vout
-XMN vout vin vss vss sky130_fd_pr__nfet_01v8 L=0.15 W=1
-XMP vout vin vdd vdd sky130_fd_pr__pfet_01v8 L=0.15 W=2
-.ends inverter
