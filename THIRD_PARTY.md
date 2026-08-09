@@ -6,6 +6,7 @@ Refer to each upstream project for its authoritative source and license terms:
 - OpenROAD: <https://github.com/The-OpenROAD-Project/OpenROAD>
 - OpenROAD-flow-scripts and ASAP7 platform data:
   <https://github.com/The-OpenROAD-Project/OpenROAD-flow-scripts>
+- Verilator: <https://github.com/verilator/verilator>
 - Icarus Verilog: <https://github.com/steveicarus/iverilog>
 - OSS CAD Suite: <https://github.com/YosysHQ/oss-cad-suite-build>
 - ngspice: <https://ngspice.sourceforge.io/>
