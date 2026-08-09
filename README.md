@@ -1,17 +1,18 @@
 # Circuit-Bench Toolchains
 
 Public, pinned Docker toolchains used to build and verify Circuit-Bench tasks.
-The repository contains Docker build sources, release workflows, distribution
-metadata, smoke checks, and public validation records. It does not contain
+The repository contains Docker build sources, release metadata, smoke checks,
+and public validation records. It does not contain
 benchmark tasks, reference solutions, hidden tests, model logs, or credentials.
 
 ## Published images
 
-The maintained consumer set currently contains two published and digest-locked
+The maintained consumer set currently contains three published and digest-locked
 images:
 
 | Use | Image | Platforms | Recommendation |
 | --- | --- | --- | --- |
+| Full RTL-to-GDS and Verilator coverage | `ghcr.io/arcadia-1/circuit-bench-orfs-verilator-coverage:1.0.0` | `linux/amd64` | Preferred digital toolchain for new tasks. |
 | Existing OpenROAD/ASAP7 synthesis and STA tasks | `ghcr.io/arcadia-1/circuit-bench-openroad-asap7:1.0.0` | `linux/amd64` | Compatibility image; keep for tasks that already depend on its `/opt/openroad` runtime contract. It is not a complete upstream ORFS tree. |
 | ngspice with complete Sky130 model trees | `ghcr.io/arcadia-1/circuit-bench-sky130-ngspice:2.0.8` | `linux/amd64`, `linux/arm64` | Recommended analog/Sky130 base. |
 
@@ -32,22 +33,21 @@ Tags are immutable public release tags. Reproducible automation should use the
 manifest digests recorded in `images.lock.json`. This project intentionally
 does not publish a `latest` tag.
 
-## Full ORFS and Verilator release candidate
+## Full ORFS and Verilator
 
-`docker/orfs-verilator-coverage.Dockerfile` defines the new preferred digital
-toolchain candidate:
+`docker/orfs-verilator-coverage.Dockerfile` defines the preferred digital
+toolchain:
 
 ```text
 ghcr.io/arcadia-1/circuit-bench-orfs-verilator-coverage:1.0.0
 ```
 
-The tag above is reserved for the first release but is **not pullable until the
-publication workflow completes**. After publication and digest locking, this
-image should be preferred for new digital tasks that require either Verilator
+The image is published and locked by manifest digest in `images.lock.json`.
+It should be preferred for new digital tasks that require either Verilator
 coverage or a complete ASAP7 RTL-to-GDS flow. The older OpenROAD/ASAP7 image
-should remain available for compatibility rather than being silently replaced.
+remains available for compatibility rather than being silently replaced.
 
-The release candidate derives from the digest-pinned upstream ORFS
+The image derives from the digest-pinned upstream ORFS
 `26Q3-273-g9768f0f54` image and adds Verilator 5.050. It contains:
 
 - the complete upstream ORFS `flow/Makefile`, `scripts`, `util`, `designs`, and
@@ -60,7 +60,7 @@ It intentionally does not add benchmark RTL, testbenches, task-specific flow
 configuration, generated results, Z3, UVM, or Cocotb. Validation assets remain
 in this repository and are mounted read-only when used.
 
-The candidate is `linux/amd64` because the pinned upstream ORFS image is
+The image is `linux/amd64` because the pinned upstream ORFS image is
 currently published only for that platform.
 
 ## Pull published releases
@@ -69,6 +69,7 @@ No GitHub account or registry login is required:
 
 ```bash
 docker pull ghcr.io/arcadia-1/circuit-bench-openroad-asap7:1.0.0
+docker pull ghcr.io/arcadia-1/circuit-bench-orfs-verilator-coverage:1.0.0
 docker pull ghcr.io/arcadia-1/circuit-bench-sky130-ngspice:2.0.8
 ```
 
@@ -113,14 +114,18 @@ rules as separate layers.
   release and builds the pinned Verilator 5.050 revision.
 - `.github/workflows/publish-images.yml` publishes the multi-architecture
   ngspice and Sky130 releases.
-- `.github/workflows/publish-orfs-verilator-coverage.yml` publishes the amd64
-  ORFS/Verilator image, attaches provenance and an SBOM, then runs coverage and
-  full ASAP7 RTL-to-GDS smoke tests against the pushed image.
+
+ORFS releases are built and validated on a fixed compatible amd64 host. Full
+EDA signoff is intentionally not run on GitHub-hosted runners: the upstream
+image includes an optional precompiled Kepler LEC binary whose CPU instruction
+requirements are not portable across every hosted-runner CPU. Coverage and
+RTL-to-GDS acceptance are run against the exact published manifest digest on
+the fixed host.
 
 Published task Dockerfiles should consume manifest digests from
 `images.lock.json`, not only human-readable tags.
 
-## Build and validate the ORFS candidate locally
+## Build and validate the ORFS release
 
 Build on an amd64 Docker host:
 
@@ -164,6 +169,7 @@ Export the current digest-locked consumer images:
 ```bash
 docker save \
   ghcr.io/arcadia-1/circuit-bench-openroad-asap7:1.0.0 \
+  ghcr.io/arcadia-1/circuit-bench-orfs-verilator-coverage:1.0.0 \
   ghcr.io/arcadia-1/circuit-bench-sky130-ngspice:2.0.8 \
   | zstd -T0 -6 -o circuit-bench-toolchains.tar.zst
 ```
