@@ -1,22 +1,69 @@
 # Circuit-Bench Toolchains
 
 Public, pinned Docker toolchains used to build and verify Circuit-Bench tasks.
-The repository contains the Docker build sources, release workflow,
-distribution metadata, and smoke checks. It does not contain benchmark tasks,
-reference solutions, hidden tests, model logs, or credentials.
+The repository contains Docker build sources, release workflows, distribution
+metadata, smoke checks, and public validation records. It does not contain
+benchmark tasks, reference solutions, hidden tests, model logs, or credentials.
 
-## Images
+## Published images
 
-| Tool and process | Image |
-| --- | --- |
-| OpenROAD and ASAP7 | `ghcr.io/arcadia-1/circuit-bench-openroad-asap7:1.0.0` |
-| ngspice and Sky130 | `ghcr.io/arcadia-1/circuit-bench-sky130-ngspice:2.0.8` |
+The maintained consumer set currently contains two published and digest-locked
+images:
 
-The tags are immutable public release tags. For reproducible automation, use
-the registry digests recorded in `images.lock.json` rather than a mutable alias.
-This project intentionally does not publish a `latest` tag.
+| Use | Image | Platforms | Recommendation |
+| --- | --- | --- | --- |
+| Existing OpenROAD/ASAP7 synthesis and STA tasks | `ghcr.io/arcadia-1/circuit-bench-openroad-asap7:1.0.0` | `linux/amd64` | Compatibility image; keep for tasks that already depend on its `/opt/openroad` runtime contract. It is not a complete upstream ORFS tree. |
+| ngspice with complete Sky130 model trees | `ghcr.io/arcadia-1/circuit-bench-sky130-ngspice:2.0.8` | `linux/amd64`, `linux/arm64` | Recommended analog/Sky130 base. |
 
-## Pull
+The registry also publishes
+`ghcr.io/arcadia-1/circuit-bench-ngspice:2.0.8` as the policy-free build base
+for the Sky130 image. Use the Sky130 image for normal analog tasks unless the
+task intentionally needs ngspice without any PDK models.
+
+Do not use these old or nonexistent names for new work:
+
+- `ghcr.io/arcadia-1/circuit-bench-ngspice-sky130` is a legacy package that
+  also contains historical task-layer tags. Use
+  `circuit-bench-sky130-ngspice:2.0.8` instead.
+- `ghcr.io/arcadia-1/circuit-bench-rtl-forge-openroad-asap7:1.0.0` was
+  proposed by an older compatibility branch but was never published.
+
+Tags are immutable public release tags. Reproducible automation should use the
+manifest digests recorded in `images.lock.json`. This project intentionally
+does not publish a `latest` tag.
+
+## Full ORFS and Verilator release candidate
+
+`docker/orfs-verilator-coverage.Dockerfile` defines the new preferred digital
+toolchain candidate:
+
+```text
+ghcr.io/arcadia-1/circuit-bench-orfs-verilator-coverage:1.0.0
+```
+
+The tag above is reserved for the first release but is **not pullable until the
+publication workflow completes**. After publication and digest locking, this
+image should be preferred for new digital tasks that require either Verilator
+coverage or a complete ASAP7 RTL-to-GDS flow. The older OpenROAD/ASAP7 image
+should remain available for compatibility rather than being silently replaced.
+
+The release candidate derives from the digest-pinned upstream ORFS
+`26Q3-273-g9768f0f54` image and adds Verilator 5.050. It contains:
+
+- the complete upstream ORFS `flow/Makefile`, `scripts`, `util`, `designs`, and
+  `platforms` trees;
+- OpenROAD, Yosys, and KLayout versions supplied by that matched ORFS release;
+- Verilator and `verilator_coverage` for line, branch, expression, and bit-level
+  toggle coverage.
+
+It intentionally does not add benchmark RTL, testbenches, task-specific flow
+configuration, generated results, Z3, UVM, or Cocotb. Validation assets remain
+in this repository and are mounted read-only when used.
+
+The candidate is `linux/amd64` because the pinned upstream ORFS image is
+currently published only for that platform.
+
+## Pull published releases
 
 No GitHub account or registry login is required:
 
@@ -31,58 +78,88 @@ Run the local smoke checks after pulling:
 ./smoke.sh
 ```
 
-## Contents
+## Published image contents
 
-The OpenROAD-ASAP7 image contains Ubuntu 24.04, OpenROAD
+The compatibility OpenROAD-ASAP7 image contains Ubuntu 24.04, OpenROAD
 `26Q2-2123-g8f0a892fa2`, Icarus Verilog 14.0 development snapshot
 `s20260301-180-gde415b2f0-dirty`, Python 3.12.3, and the pinned ASAP7 platform
-files used by Circuit-Bench digital timing tasks.
+files used by existing Circuit-Bench digital timing tasks.
 
-The ngspice-Sky130 image contains ngspice 46, Python with NumPy, and the
-pinned Sky130 continuous model library at
-`/opt/sky130/continuous/sky130.lib.spice`. It also carries the complete
-official Sky130 ngspice model trees, preserving their relative layout at:
+The ngspice-Sky130 image contains ngspice 46, Python with NumPy, and the pinned
+Sky130 continuous model library at
+`/opt/sky130/continuous/sky130.lib.spice`. It also carries the complete official
+Sky130 ngspice model trees at:
 
 ```text
 /opt/sky130/pdk/sky130A/libs.tech/ngspice/
 /opt/sky130/pdk/sky130A/libs.ref/sky130_fd_pr/spice/
 ```
 
-`SKY130_PDK_ROOT` is set to `/opt/sky130/pdk/sky130A`. These trees contain the
-official PVT entry points and device models, including RF R/C, inductors,
-varactors, MIM/VPP capacitors, diodes, BJT, ESD, and special/high-voltage
-devices.
-
-The image is deliberately policy-free: benchmark checkers, allowlists, task
-contracts, and scoring code belong to benchmark-owned layers.
-
-The ngspice executable is installed at `/opt/ngspice/bin/ngspice` and exposed
-as `/usr/local/bin/ngspice`, so the `ngspice` command is available from both
-ordinary and login shells.
+`SKY130_PDK_ROOT` is `/opt/sky130/pdk/sky130A`. The image is deliberately
+policy-free: benchmark checkers, allowlists, task contracts, and scoring code
+belong to benchmark-owned layers.
 
 These are toolchain images, not complete task images. A task repository adds
 its checker, starter files, task-specific contracts, scoring, and verification
-rules as separate layers. Keeping benchmark policy outside the toolchain lets a
-benchmark update its checker without rebuilding ngspice or the Sky130 PDK.
+rules as separate layers.
 
-## Build sources
+## Build sources and release workflows
 
 - `docker/ngspice.Dockerfile` builds ngspice 46 from a checksum-pinned source
   archive.
 - `docker/ngspice-sky130.Dockerfile` adds the pinned Sky130 continuous model
-  library plus the complete official ngspice configuration and device-model
-  trees.
-- `.github/workflows/publish-images.yml` publishes versioned amd64 and arm64
-  manifests to GHCR, attaches provenance and SBOM attestations, runs a
-  transistor-level smoke simulation, and records the resulting manifest
-  digests.
+  library and complete official ngspice device-model trees.
+- `docker/orfs-verilator-coverage.Dockerfile` derives from the pinned full ORFS
+  release and builds the pinned Verilator 5.050 revision.
+- `.github/workflows/publish-images.yml` publishes the multi-architecture
+  ngspice and Sky130 releases.
+- `.github/workflows/publish-orfs-verilator-coverage.yml` publishes the amd64
+  ORFS/Verilator image, attaches provenance and an SBOM, then runs coverage and
+  full ASAP7 RTL-to-GDS smoke tests against the pushed image.
 
-Published task Dockerfiles should consume the manifest digest recorded in
-`images.lock.json`, not just the human-readable release tag.
+Published task Dockerfiles should consume manifest digests from
+`images.lock.json`, not only human-readable tags.
 
-## Offline Transfer
+## Build and validate the ORFS candidate locally
 
-An operator can export both public images into one compressed archive:
+Build on an amd64 Docker host:
+
+```bash
+sudo docker build \
+  --file docker/orfs-verilator-coverage.Dockerfile \
+  --tag circuit-bench-orfs-verilator-coverage:1.0.0 \
+  .
+```
+
+Run the tool/coverage smoke and a complete upstream ASAP7 GCD flow:
+
+```bash
+sudo docker run --rm --network none \
+  --env TEST_ROOT=/tests \
+  --volume "$PWD/tests:/tests:ro" \
+  circuit-bench-orfs-verilator-coverage:1.0.0 \
+  /tests/verilator-coverage-smoke.sh
+
+sudo docker run --rm --network none \
+  --env TEST_ROOT=/tests \
+  --volume "$PWD/tests:/tests:ro" \
+  circuit-bench-orfs-verilator-coverage:1.0.0 \
+  /tests/gcd-coverage.sh
+
+sudo docker run --rm --network none \
+  --volume "$PWD/tests:/tests:ro" \
+  circuit-bench-orfs-verilator-coverage:1.0.0 \
+  /tests/orfs-gcd-smoke.sh
+```
+
+The recorded GCD and RTL-Forge NoC-router acceptance results are under
+`validation/`. They demonstrate coverage, complete RTL-to-GDS execution, DRC,
+STA, electrical checks, and GDS generation without putting design-specific
+content into the image.
+
+## Offline transfer
+
+Export the current digest-locked consumer images:
 
 ```bash
 docker save \
@@ -91,7 +168,7 @@ docker save \
   | zstd -T0 -6 -o circuit-bench-toolchains.tar.zst
 ```
 
-Import it with:
+Import them with:
 
 ```bash
 zstd -dc circuit-bench-toolchains.tar.zst | docker load

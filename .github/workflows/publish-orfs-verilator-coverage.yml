@@ -1,0 +1,148 @@
+name: Publish ORFS and Verilator coverage image
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Immutable semantic version to publish, for example 1.0.0
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: publish-orfs-verilator-coverage-${{ inputs.version }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+
+    steps:
+      - name: Check out sources
+        uses: actions/checkout@v4
+
+      - name: Validate version
+        id: version
+        shell: bash
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "version must be a semantic version such as 1.0.0" >&2
+            exit 1
+          fi
+          echo "value=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Reject an existing release tag
+        shell: bash
+        env:
+          IMAGE: ghcr.io/arcadia-1/circuit-bench-orfs-verilator-coverage
+          VERSION: ${{ steps.version.outputs.value }}
+        run: |
+          set -euo pipefail
+          if docker buildx imagetools inspect "${IMAGE}:${VERSION}" >/dev/null 2>&1; then
+            echo "refusing to overwrite an existing immutable release: ${IMAGE}:${VERSION}" >&2
+            exit 1
+          fi
+
+      - name: Build and publish full ORFS with Verilator coverage
+        id: orfs
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/orfs-verilator-coverage.Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: ghcr.io/arcadia-1/circuit-bench-orfs-verilator-coverage:${{ steps.version.outputs.value }}
+          build-args: |
+            IMAGE_VERSION=${{ steps.version.outputs.value }}
+          cache-from: type=gha,scope=orfs-verilator-coverage
+          cache-to: type=gha,mode=max,scope=orfs-verilator-coverage
+          provenance: mode=max
+          sbom: true
+
+      - name: Smoke-test published tools and Verilator coverage
+        shell: bash
+        env:
+          IMAGE: ghcr.io/arcadia-1/circuit-bench-orfs-verilator-coverage:${{ steps.version.outputs.value }}
+        run: |
+          set -euo pipefail
+          docker pull "$IMAGE"
+          docker run --rm --network none "$IMAGE" bash -lc '
+            set -euo pipefail
+            test -f "$FLOW_HOME/Makefile"
+            test -d "$FLOW_HOME/scripts"
+            test -d "$FLOW_HOME/util"
+            test -d "$FLOW_HOME/designs"
+            test -d "$FLOW_HOME/platforms"
+            openroad -version | grep -F "26Q3-1080-gab6fd26351"
+            yosys -V
+            klayout -v | grep -F "KLayout 0.30.7"
+            verilator --version | grep -F "Verilator 5.050"
+            verilator_coverage --version | grep -F "Verilator 5.050"
+          '
+          docker run --rm --network none \
+            --env TEST_ROOT=/tests \
+            --volume "$PWD/tests:/tests:ro" \
+            "$IMAGE" \
+            /tests/verilator-coverage-smoke.sh
+          docker run --rm --network none \
+            --env TEST_ROOT=/tests \
+            --volume "$PWD/tests:/tests:ro" \
+            "$IMAGE" \
+            /tests/gcd-coverage.sh
+
+      - name: Run published-image ASAP7 RTL-to-GDS smoke
+        shell: bash
+        env:
+          IMAGE: ghcr.io/arcadia-1/circuit-bench-orfs-verilator-coverage:${{ steps.version.outputs.value }}
+        run: |
+          set -euo pipefail
+          docker run --rm --network none \
+            --volume "$PWD/tests:/tests:ro" \
+            "$IMAGE" \
+            /tests/orfs-gcd-smoke.sh
+
+      - name: Record published manifest digest
+        shell: bash
+        env:
+          VERSION: ${{ steps.version.outputs.value }}
+          ORFS_DIGEST: ${{ steps.orfs.outputs.digest }}
+        run: |
+          set -euo pipefail
+          jq -n \
+            --arg version "$VERSION" \
+            --arg digest "$ORFS_DIGEST" \
+            '{
+              version: $version,
+              images: {
+                "circuit-bench-orfs-verilator-coverage": $digest
+              }
+            }' > published-orfs-digest.json
+          {
+            echo "## Published ORFS and Verilator coverage image"
+            echo
+            echo "- manifest digest: \`$ORFS_DIGEST\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload digest record
+        uses: actions/upload-artifact@v4
+        with:
+          name: published-orfs-digest-${{ steps.version.outputs.value }}
+          path: published-orfs-digest.json
+          if-no-files-found: error
