@@ -2,6 +2,19 @@
   "schema_version": 1,
   "images": [
     {
+      "name": "orfs-verilator-coverage",
+      "image": "ghcr.io/arcadia-1/circuit-bench-orfs-verilator-coverage:1.0.0",
+      "digest": "sha256:3046cb6ea2fa3273d24e853a4a1a9d87a9670d46554d55e66ef79dc465072c5a",
+      "components": {
+        "orfs": "26Q3-273-g9768f0f54",
+        "orfs_revision": "9768f0f5432c77b215be1ff3ce7a3417f2b27bcd",
+        "openroad": "26Q3-1080-gab6fd26351",
+        "yosys": "0.68+post",
+        "klayout": "0.30.7",
+        "verilator": "5.050"
+      }
+    },
+    {
       "name": "openroad-asap7",
       "image": "ghcr.io/arcadia-1/circuit-bench-openroad-asap7:1.0.0",
       "digest": "sha256:82463d5abf9dc0c8f4f402f78f544ba193a4ecea62b0397a5b193388062d3f92",
