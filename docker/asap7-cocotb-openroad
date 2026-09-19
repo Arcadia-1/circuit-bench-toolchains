@@ -1,0 +1,7 @@
+#!/bin/sh
+# OpenROAD 26Q3 links against OR-Tools and twenty-one system libraries the ASAP7
+# base does not carry, including libpython3.10. They live in a private directory
+# and are reached only from here: set globally, several of them would shadow the
+# base's own libraries, and the simulation stack depends on those.
+LD_LIBRARY_PATH="/opt/openroad-26q3/extralib:/opt/or-tools/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" \
+  exec /opt/openroad-26q3/bin/openroad "$@"
