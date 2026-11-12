@@ -11,6 +11,9 @@ Refer to each upstream project for its authoritative source and license terms:
 - OSS CAD Suite: <https://github.com/YosysHQ/oss-cad-suite-build>
 - ngspice: <https://ngspice.sourceforge.io/>
 - SkyWater SKY130 PDK: <https://github.com/google/skywater-pdk>
+- GlobalFoundries GF180MCU PDK (Apache-2.0):
+  <https://github.com/google/gf180mcu-pdk>, packaged through open_pdks and
+  <https://github.com/fossi-foundation/ciel-releases>
 
 The image tags in this repository identify the exact Circuit-Bench runtime
 snapshots. They are not upstream project releases.

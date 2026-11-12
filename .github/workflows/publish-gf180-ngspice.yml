@@ -1,0 +1,122 @@
+name: Publish GF180 ngspice image
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Immutable semantic version to publish, for example 1.0.0
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: publish-gf180-ngspice-${{ inputs.version }}
+  cancel-in-progress: false
+
+env:
+  IMAGE: ghcr.io/arcadia-1/circuit-bench-gf180-ngspice
+  # Policy-free ngspice 46 base, circuit-bench-ngspice:2.0.8 manifest list.
+  BASE_IMAGE: ghcr.io/arcadia-1/circuit-bench-ngspice@sha256:0fbd3883b7c333eba55554bb14953b414e5a0ff7e7455feb6c8cec08575f91e4
+
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+
+    steps:
+      - name: Check out sources
+        uses: actions/checkout@v4
+
+      - name: Validate version
+        id: version
+        shell: bash
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "version must be a semantic version such as 1.0.0" >&2
+            exit 1
+          fi
+          echo "value=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Reject an existing release tag
+        shell: bash
+        env:
+          VERSION: ${{ steps.version.outputs.value }}
+        run: |
+          set -euo pipefail
+          if docker buildx imagetools inspect "${IMAGE}:${VERSION}" >/dev/null 2>&1; then
+            echo "refusing to overwrite an existing immutable release: ${IMAGE}:${VERSION}" >&2
+            exit 1
+          fi
+
+      - name: Build and publish ngspice with GF180MCU
+        id: gf180
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/ngspice-gf180.Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ env.IMAGE }}:${{ steps.version.outputs.value }}
+          build-args: |
+            BASE_IMAGE=${{ env.BASE_IMAGE }}
+            IMAGE_VERSION=${{ steps.version.outputs.value }}
+          cache-from: type=gha,scope=ngspice-gf180
+          cache-to: type=gha,mode=max,scope=ngspice-gf180
+          provenance: mode=max
+          sbom: true
+
+      - name: Smoke-test published GF180 image
+        shell: bash
+        env:
+          VERSION: ${{ steps.version.outputs.value }}
+        run: |
+          set -euo pipefail
+          docker pull "${IMAGE}:${VERSION}"
+          docker run --rm --network none \
+            -v "$PWD/tests:/smoke:ro" \
+            "${IMAGE}:${VERSION}" \
+            /smoke/ngspice-gf180-smoke.sh
+
+      - name: Record published manifest digest
+        shell: bash
+        env:
+          VERSION: ${{ steps.version.outputs.value }}
+          GF180_DIGEST: ${{ steps.gf180.outputs.digest }}
+        run: |
+          set -euo pipefail
+          jq -n \
+            --arg version "$VERSION" \
+            --arg gf180 "$GF180_DIGEST" \
+            '{version: $version, images: {"circuit-bench-gf180-ngspice": $gf180}}' \
+            > published-digests.json
+          {
+            echo "## Published GF180 toolchain image"
+            echo
+            echo "- ngspice-gf180: \`$GF180_DIGEST\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload digest record
+        uses: actions/upload-artifact@v4
+        with:
+          name: published-gf180-digest-${{ steps.version.outputs.value }}
+          path: published-digests.json
+          if-no-files-found: error

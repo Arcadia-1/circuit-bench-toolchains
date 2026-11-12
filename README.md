@@ -63,6 +63,54 @@ in this repository and are mounted read-only when used.
 The image is `linux/amd64` because the pinned upstream ORFS image is
 currently published only for that platform.
 
+## GF180MCU ngspice release candidate
+
+`docker/ngspice-gf180.Dockerfile` defines an analog base for GF180MCU tasks:
+
+```text
+ghcr.io/arcadia-1/circuit-bench-gf180-ngspice:1.0.0
+```
+
+The tag is reserved for the first release and is **not pullable until
+`.github/workflows/publish-gf180-ngspice.yml` has run**. After publication,
+record its manifest digest in `images.lock.json`.
+
+The image adds GF180MCU model files to the published policy-free
+`circuit-bench-ngspice:2.0.8` base (ngspice 46, Python with NumPy), pinned by
+manifest digest. The models come from open_pdks snapshot
+`792ef67037d74c8c51811eab3ce23cf793491296`, checksum-verified. All four
+variants are present, and their ngspice files are identical:
+
+```text
+/opt/gf180/pdk/gf180mcuA/libs.tech/ngspice/
+/opt/gf180/pdk/gf180mcuB/libs.tech/ngspice/
+/opt/gf180/pdk/gf180mcuC/libs.tech/ngspice/
+/opt/gf180/pdk/gf180mcuD/libs.tech/ngspice/
+```
+
+`GF180_PDK_ROOT` is `/opt/gf180/pdk/gf180mcuD`. As with Sky130, the image
+carries no checker, allowlist or corner wrapper. A typical-corner deck
+includes `design.ngspice`, then loads the `typical`, `bjt_typical`,
+`diode_typical`, `res_typical`, `mimcap_typical` and `moscap_typical`
+sections of `sm141064.ngspice`. `tests/ngspice-gf180-smoke.spice` shows this.
+
+Build and check it locally:
+
+```bash
+docker build \
+  --file docker/ngspice-gf180.Dockerfile \
+  --build-arg BASE_IMAGE=ghcr.io/arcadia-1/circuit-bench-ngspice@sha256:0fbd3883b7c333eba55554bb14953b414e5a0ff7e7455feb6c8cec08575f91e4 \
+  --tag circuit-bench-gf180-ngspice:dev \
+  .
+
+docker run --rm --network none \
+  --volume "$PWD/tests:/smoke:ro" \
+  circuit-bench-gf180-ngspice:dev \
+  /smoke/ngspice-gf180-smoke.sh
+```
+
+The validation record is `validation/gf180-2026-11-12.md`.
+
 ## Pull published releases
 
 No GitHub account or registry login is required:
@@ -114,6 +162,11 @@ rules as separate layers.
   release and builds the pinned Verilator 5.050 revision.
 - `.github/workflows/publish-images.yml` publishes the multi-architecture
   ngspice and Sky130 releases.
+- `docker/ngspice-gf180.Dockerfile` adds the pinned GF180MCU ngspice model
+  files to the published ngspice base.
+- `.github/workflows/publish-gf180-ngspice.yml` publishes the
+  multi-architecture GF180 image on its own version line and smoke-tests the
+  pushed tag.
 
 ORFS releases are built and validated on a fixed compatible amd64 host. Full
 EDA signoff is intentionally not run on GitHub-hosted runners: the upstream

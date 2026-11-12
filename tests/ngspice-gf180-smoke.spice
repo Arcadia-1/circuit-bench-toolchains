@@ -1,0 +1,37 @@
+Circuit-Bench ngspice and GF180MCU smoke test
+* Loads every typical-corner section and exercises one device of each class.
+.include /opt/gf180/pdk/gf180mcuD/libs.tech/ngspice/design.ngspice
+.lib /opt/gf180/pdk/gf180mcuD/libs.tech/ngspice/sm141064.ngspice typical
+.lib /opt/gf180/pdk/gf180mcuD/libs.tech/ngspice/sm141064.ngspice bjt_typical
+.lib /opt/gf180/pdk/gf180mcuD/libs.tech/ngspice/sm141064.ngspice diode_typical
+.lib /opt/gf180/pdk/gf180mcuD/libs.tech/ngspice/sm141064.ngspice res_typical
+.lib /opt/gf180/pdk/gf180mcuD/libs.tech/ngspice/sm141064.ngspice mimcap_typical
+.lib /opt/gf180/pdk/gf180mcuD/libs.tech/ngspice/sm141064.ngspice moscap_typical
+
+VDD vdd 0 3.3
+VIN in 0 0
+* 3.3 V inverter with its input low: the output sits at VDD.
+M1 out in 0 0 nfet_03v3 w=1u l=0.28u
+M2 out in vdd vdd pfet_03v3 w=2u l=0.28u
+* 6 V inverter with its input high: the output sits at ground.
+M3 out6 vdd 0 0 nfet_06v0 w=1u l=0.7u
+M4 out6 vdd vdd vdd pfet_06v0 w=2u l=0.5u
+* Equal poly resistors divide VDD in half; a MIM capacitor loads the tap.
+XR1 vdd rmid 0 ppolyf_u r_width=2u r_length=20u
+XR2 rmid 0 0 ppolyf_u r_width=2u r_length=20u
+XC1 rmid 0 cap_mim_2f0_m4m5_noshield c_width=10u c_length=10u
+* Diode-connected vertical PNP biased at 10 uA.
+IQ 0 qe 10u
+XQ1 0 0 qe pnp_10p00x10p00
+* Forward-biased P+/Nwell diode carrying 10 uA.
+ID 0 da 10u
+D1 da 0 diode_pd2nw_03v3 area=4p pj=8u
+
+.control
+set wr_singlescale
+set wr_vecnames
+op
+wrdata /tmp/gf180-smoke.dat v(out) v(out6) v(rmid) v(qe) v(da) i(VDD)
+quit
+.endc
+.end
