@@ -83,3 +83,10 @@ capacitors and diodes, so it is not added.
   each model's own directory; `mosvar` fails in ADMS.
 - **IHP test diode.** A 0.78 um antenna diode shows 1.67 V at 10 uA
   (series resistance); the smoke test uses 10 um x 10 um (0.74 V).
+
+## Published
+
+GitHub Actions run 43286124433 rebuilt all seven images from the same
+Dockerfiles, published them as `1.0.0` and smoke-tested the pushed images,
+including VACASK with GF180 (the runner kernel supports it). Their digests are
+in `images.lock.json`.

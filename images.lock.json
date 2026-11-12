@@ -37,6 +37,87 @@
         "sky130_model_path": "/opt/sky130/continuous/sky130.lib.spice",
         "sky130_pdk_root": "/opt/sky130/pdk/sky130A"
       }
+    },
+    {
+      "name": "ngspice-gf180",
+      "image": "ghcr.io/arcadia-1/circuit-bench-gf180-ngspice:1.0.0",
+      "digest": "sha256:b266ed5fc2d1c2278d1ebcc89f6e5b34ec3eda277eedb340c3613424f25987e0",
+      "components": {
+        "ngspice": "46",
+        "gf180mcu_commit": "792ef67037d74c8c51811eab3ce23cf793491296",
+        "gf180_pdk_root": "/opt/gf180/pdk/gf180mcuD"
+      }
+    },
+    {
+      "name": "ngspice-ihp-sg13g2",
+      "image": "ghcr.io/arcadia-1/circuit-bench-ihp-sg13g2-ngspice:1.0.0",
+      "digest": "sha256:4fb1ad94de2ca53d80f0dc6381cc0ad4069b18d82196eb3d20a0ed44dd536ee6",
+      "components": {
+        "ngspice": "46",
+        "ihp_sg13g2_commit": "0dedf265f0cad6ef81aeb64b9ddd17eef88c0460",
+        "ihp_pdk_root": "/opt/ihp/pdk/ihp-sg13g2",
+        "osdi_compiler": "OpenVAF-Reloaded from VACASK 0.3.4"
+      }
+    },
+    {
+      "name": "xyce",
+      "image": "ghcr.io/arcadia-1/circuit-bench-xyce:1.0.0",
+      "digest": "sha256:9e168b61d511f43288020e20cc72625a94b4e4fb83f92e862f986139169745c8",
+      "components": {
+        "xyce": "7.10.0",
+        "trilinos": "14.4.0"
+      }
+    },
+    {
+      "name": "xyce-gf180",
+      "image": "ghcr.io/arcadia-1/circuit-bench-gf180-xyce:1.0.0",
+      "digest": "sha256:8beddf99cfc3cd89fb14a3f0d86b03b59e5300934d88c85e5ac73ed1813967bd",
+      "components": {
+        "xyce": "7.10.0",
+        "trilinos": "14.4.0",
+        "gf180mcu_commit": "792ef67037d74c8c51811eab3ce23cf793491296",
+        "gf180_pdk_root": "/opt/gf180/pdk/gf180mcuD"
+      }
+    },
+    {
+      "name": "xyce-ihp-sg13g2",
+      "image": "ghcr.io/arcadia-1/circuit-bench-ihp-sg13g2-xyce:1.0.0",
+      "digest": "sha256:cf8b743e8e6632c4fabc7235af78e9dce2ba835fd63116aafb7e1fb89b2bbf8a",
+      "components": {
+        "xyce": "7.10.0",
+        "trilinos": "14.4.0",
+        "ihp_sg13g2_commit": "0dedf265f0cad6ef81aeb64b9ddd17eef88c0460",
+        "ihp_pdk_root": "/opt/ihp/pdk/ihp-sg13g2",
+        "xyce_plugins_env": "IHP_XYCE_PLUGINS"
+      }
+    },
+    {
+      "name": "vacask",
+      "image": "ghcr.io/arcadia-1/circuit-bench-vacask:1.0.0",
+      "digest": "sha256:b415a9929423fb79b2ff1a247dff26c89a3ac6817ed6aa95f3f9650fc0e2a553",
+      "components": {
+        "vacask": "0.3.4"
+      }
+    },
+    {
+      "name": "vacask-gf180",
+      "image": "ghcr.io/arcadia-1/circuit-bench-gf180-vacask:1.0.0",
+      "digest": "sha256:a47b12116b01d1e1ce33b66da403443a7dd0859210651d63ef57c8900bd71362",
+      "components": {
+        "vacask": "0.3.4",
+        "gf180mcu_commit": "792ef67037d74c8c51811eab3ce23cf793491296",
+        "gf180_pdk_root": "/opt/gf180/pdk/gf180mcuD"
+      }
+    },
+    {
+      "name": "vacask-ihp-sg13g2",
+      "image": "ghcr.io/arcadia-1/circuit-bench-ihp-sg13g2-vacask:1.0.0",
+      "digest": "sha256:9d65201c47f5682971b2eea90994d79739011ba32a3e7eccce5a64897df9f561",
+      "components": {
+        "vacask": "0.3.4",
+        "ihp_sg13g2_commit": "0dedf265f0cad6ef81aeb64b9ddd17eef88c0460",
+        "ihp_pdk_root": "/opt/ihp/pdk/ihp-sg13g2"
+      }
     }
   ]
 }
