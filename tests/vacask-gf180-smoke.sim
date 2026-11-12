@@ -1,0 +1,28 @@
+Circuit-Bench VACASK and GF180MCU smoke test
+// Four MOS bias points (drain at VDD for NMOS, source at VDD for PMOS) and a
+// pulsed inverter. The DC currents are compared with ngspice 46 on the same models.
+include "gf180_vacask_common.lib"
+include "design.lib"
+include "mos_tt.lib"
+
+model v vsource
+vgf (gf 0) v dc=3.3
+vgh (gh 0) v dc=1.65
+vsp (sp 0) v dc=3.3
+vn1 (dn1 0) v dc=3.3
+vn2 (dn2 0) v dc=3.3
+vp1 (dp1 0) v dc=0
+vp2 (dp2 0) v dc=0
+xn1 (dn1 gf 0 0) nfet_03v3 w=1u l=0.28u
+xn2 (dn2 gh 0 0) nfet_03v3 w=1u l=0.28u
+xp1 (dp1 0 sp sp) pfet_03v3 w=1u l=0.28u
+xp2 (dp2 gh sp sp) pfet_03v3 w=1u l=0.28u
+
+vin (in 0) v type="pulse" val0=0 val1=3.3 rise=100p fall=100p width=4n delay=2n period=8n
+xm1 (out in 0 0) nfet_03v3 w=2u l=0.28u
+xm2 (out in sp sp) pfet_03v3 w=4u l=0.28u
+
+control
+  analysis op1 op
+  analysis tran1 tran step=10p stop=8n
+endc

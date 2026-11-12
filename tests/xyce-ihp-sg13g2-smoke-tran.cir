@@ -1,0 +1,14 @@
+Circuit-Bench Xyce and IHP SG13G2 smoke test (transient)
+* A 1.2 V inverter loaded by a MIM capacitor, driven by a pulse.
+.lib /opt/ihp/pdk/ihp-sg13g2/libs.tech/xyce/models/cornerMOSlv.lib mos_tt
+.lib /opt/ihp/pdk/ihp-sg13g2/libs.tech/xyce/models/cornerCAP.lib cap_typ
+
+VDD vdd 0 1.2
+VP in 0 pulse(0 1.2 1n 50p 50p 2n 4n)
+XM1 out in 0 0 sg13_lv_nmos w=1u l=0.13u
+XM2 out in vdd vdd sg13_lv_pmos w=2u l=0.13u
+XC1 out 0 cap_cmim w=2u l=2u
+
+.tran 10p 4n
+.print tran format=csv v(in) v(out)
+.end

@@ -1,0 +1,61 @@
+name: Check VACASK and IHP ngspice images
+
+# Builds the VACASK images and the IHP ngspice image without pushing them, and
+# runs their smoke tests three times each. GitHub's Ubuntu runners have a
+# kernel new enough for VACASK's run-time Verilog-A compile, which the GF180
+# VACASK image needs (see docs/analog.md).
+
+on:
+  pull_request:
+    paths:
+      - docker/vacask*.Dockerfile
+      - docker/ngspice-ihp-sg13g2.Dockerfile
+      - tests/vacask-*
+      - tests/ngspice-ihp-sg13g2-*
+      - .github/workflows/check-vacask.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  NGSPICE_BASE: ghcr.io/arcadia-1/circuit-bench-ngspice@sha256:0fbd3883b7c333eba55554bb14953b414e5a0ff7e7455feb6c8cec08575f91e4
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+
+    steps:
+      - name: Check out sources
+        uses: actions/checkout@v4
+
+      - name: Show kernel
+        run: uname -r
+
+      - name: Build images
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker build -f docker/vacask.Dockerfile -t cb-vacask:check .
+          docker build -f docker/vacask-gf180.Dockerfile \
+            --build-arg BASE_IMAGE=cb-vacask:check -t cb-gf180-vacask:check .
+          docker build -f docker/vacask-ihp-sg13g2.Dockerfile \
+            --build-arg BASE_IMAGE=cb-vacask:check -t cb-ihp-sg13g2-vacask:check .
+          docker build -f docker/ngspice-ihp-sg13g2.Dockerfile \
+            --build-arg BASE_IMAGE="${NGSPICE_BASE}" -t cb-ihp-sg13g2-ngspice:check .
+          docker images --format '{{.Repository}}:{{.Tag}} {{.Size}}' | grep ':check'
+
+      - name: Smoke-test each image three times
+        shell: bash
+        run: |
+          set -euo pipefail
+          for pair in vacask:vacask-smoke.sh gf180-vacask:vacask-gf180-smoke.sh \
+                      ihp-sg13g2-vacask:vacask-ihp-sg13g2-smoke.sh \
+                      ihp-sg13g2-ngspice:ngspice-ihp-sg13g2-smoke.sh; do
+            image="cb-${pair%%:*}:check"; script="${pair#*:}"
+            for run in 1 2 3; do
+              echo "== ${image} run ${run}"
+              docker run --rm --network none -v "$PWD/tests:/smoke:ro" "${image}" "/smoke/${script}"
+            done
+          done

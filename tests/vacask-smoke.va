@@ -1,0 +1,7 @@
+`include "disciplines.vams"
+module vares(p, n);
+  inout p, n;
+  electrical p, n;
+  parameter real r = 1e3 from (0:inf);
+  analog I(p, n) <+ V(p, n) / r;
+endmodule

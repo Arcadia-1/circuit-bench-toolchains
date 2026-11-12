@@ -1,0 +1,16 @@
+Circuit-Bench Xyce smoke test
+* Built-in devices only: an RC low-pass driven by a step, a diode and a
+* level-1 MOSFET, so the base image is checked without any PDK.
+V1 in 0 pulse(0 1 1n 10p 10p 100n 200n)
+R1 in out 1k
+C1 out 0 10p
+ID 0 da 10u
+D1 da 0 dmod
+.model dmod d is=1e-14
+VDD vdd 0 1.8
+M1 dn vdd 0 0 nmod w=1u l=1u
+RD vdd dn 10k
+.model nmod nmos level=1 vto=0.5 kp=100u
+.tran 10p 40n
+.print tran format=csv v(out) v(da) v(dn)
+.end
