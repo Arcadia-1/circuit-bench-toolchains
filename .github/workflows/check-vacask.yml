@@ -44,7 +44,7 @@ jobs:
             --build-arg BASE_IMAGE=cb-vacask:check -t cb-ihp-sg13g2-vacask:check .
           docker build -f docker/ngspice-ihp-sg13g2.Dockerfile \
             --build-arg BASE_IMAGE="${NGSPICE_BASE}" -t cb-ihp-sg13g2-ngspice:check .
-          docker images | grep ':check'
+          docker images --format '{{.Repository}}:{{.Tag}} {{.Size}}' | grep ':check'
 
       - name: Smoke-test each image three times
         shell: bash
