@@ -1,0 +1,261 @@
+name: Publish IHP SG13G2, Xyce and VACASK images
+
+# Publishes, on one version line:
+#   circuit-bench-ihp-sg13g2-ngspice  ngspice 46 + IHP SG13G2 (OSDI models)
+#   circuit-bench-xyce                Xyce 7.10.0 base with Verilog-A plugin support
+#   circuit-bench-gf180-xyce          Xyce + GF180MCU Xyce models
+#   circuit-bench-ihp-sg13g2-xyce     Xyce + IHP SG13G2 models and PSP103/R3_CMC plugins
+#   circuit-bench-vacask              VACASK 0.3.4 base (bundles OpenVAF-Reloaded)
+#   circuit-bench-gf180-vacask        VACASK + GF180MCU models converted by gf180tovc
+#   circuit-bench-ihp-sg13g2-vacask   VACASK + IHP SG13G2 models converted by sg13g2tovc
+# All seven are linux/amd64 only: VACASK and OpenVAF-Reloaded ship amd64
+# binaries only, and Xyce is too slow to build under QEMU.
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Immutable semantic version to publish, for example 1.0.0
+        required: true
+        type: string
+      vacask_deb_url:
+        description: Optional mirror of vacask_0.3.4_amd64.deb (checksum is still enforced)
+        required: false
+        type: string
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: publish-analog-sim-${{ inputs.version }}
+  cancel-in-progress: false
+
+env:
+  REGISTRY: ghcr.io/arcadia-1
+  # Policy-free ngspice 46 base, circuit-bench-ngspice:2.0.8 manifest list.
+  NGSPICE_BASE: ghcr.io/arcadia-1/circuit-bench-ngspice@sha256:0fbd3883b7c333eba55554bb14953b414e5a0ff7e7455feb6c8cec08575f91e4
+
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 300
+
+    steps:
+      - name: Check out sources
+        uses: actions/checkout@v4
+
+      - name: Validate version
+        id: version
+        shell: bash
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "version must be a semantic version such as 1.0.0" >&2
+            exit 1
+          fi
+          echo "value=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Reject existing release tags
+        shell: bash
+        env:
+          VERSION: ${{ steps.version.outputs.value }}
+        run: |
+          set -euo pipefail
+          for name in ihp-sg13g2-ngspice xyce gf180-xyce ihp-sg13g2-xyce vacask gf180-vacask ihp-sg13g2-vacask; do
+            if docker buildx imagetools inspect "${REGISTRY}/circuit-bench-${name}:${VERSION}" >/dev/null 2>&1; then
+              echo "refusing to overwrite an existing immutable release: circuit-bench-${name}:${VERSION}" >&2
+              exit 1
+            fi
+          done
+
+      - name: Build and publish ngspice with IHP SG13G2
+        id: ihp_ngspice
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/ngspice-ihp-sg13g2.Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: ${{ env.REGISTRY }}/circuit-bench-ihp-sg13g2-ngspice:${{ steps.version.outputs.value }}
+          build-args: |
+            BASE_IMAGE=${{ env.NGSPICE_BASE }}
+            IMAGE_VERSION=${{ steps.version.outputs.value }}
+            ${{ inputs.vacask_deb_url != '' && format('VACASK_DEB_URL={0}', inputs.vacask_deb_url) || '' }}
+          cache-from: type=gha,scope=ihp-sg13g2-ngspice
+          cache-to: type=gha,mode=max,scope=ihp-sg13g2-ngspice
+          provenance: mode=max
+          sbom: true
+
+      - name: Build and publish the Xyce base
+        id: xyce
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/xyce.Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: ${{ env.REGISTRY }}/circuit-bench-xyce:${{ steps.version.outputs.value }}
+          build-args: |
+            JOBS=4
+            IMAGE_VERSION=${{ steps.version.outputs.value }}
+          cache-from: type=gha,scope=xyce
+          cache-to: type=gha,mode=max,scope=xyce
+          provenance: mode=max
+          sbom: true
+
+      - name: Build and publish Xyce with GF180MCU
+        id: gf180_xyce
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/xyce-gf180.Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: ${{ env.REGISTRY }}/circuit-bench-gf180-xyce:${{ steps.version.outputs.value }}
+          build-args: |
+            BASE_IMAGE=${{ env.REGISTRY }}/circuit-bench-xyce@${{ steps.xyce.outputs.digest }}
+            IMAGE_VERSION=${{ steps.version.outputs.value }}
+          provenance: mode=max
+          sbom: true
+
+      - name: Build and publish Xyce with IHP SG13G2
+        id: ihp_xyce
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/xyce-ihp-sg13g2.Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: ${{ env.REGISTRY }}/circuit-bench-ihp-sg13g2-xyce:${{ steps.version.outputs.value }}
+          build-args: |
+            BASE_IMAGE=${{ env.REGISTRY }}/circuit-bench-xyce@${{ steps.xyce.outputs.digest }}
+            IMAGE_VERSION=${{ steps.version.outputs.value }}
+          provenance: mode=max
+          sbom: true
+
+      - name: Build and publish the VACASK base
+        id: vacask
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/vacask.Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: ${{ env.REGISTRY }}/circuit-bench-vacask:${{ steps.version.outputs.value }}
+          build-args: |
+            IMAGE_VERSION=${{ steps.version.outputs.value }}
+            ${{ inputs.vacask_deb_url != '' && format('VACASK_DEB_URL={0}', inputs.vacask_deb_url) || '' }}
+          provenance: mode=max
+          sbom: true
+
+      - name: Build and publish VACASK with GF180MCU
+        id: gf180_vacask
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/vacask-gf180.Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: ${{ env.REGISTRY }}/circuit-bench-gf180-vacask:${{ steps.version.outputs.value }}
+          build-args: |
+            BASE_IMAGE=${{ env.REGISTRY }}/circuit-bench-vacask@${{ steps.vacask.outputs.digest }}
+            IMAGE_VERSION=${{ steps.version.outputs.value }}
+          provenance: mode=max
+          sbom: true
+
+      - name: Build and publish VACASK with IHP SG13G2
+        id: ihp_vacask
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/vacask-ihp-sg13g2.Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: ${{ env.REGISTRY }}/circuit-bench-ihp-sg13g2-vacask:${{ steps.version.outputs.value }}
+          build-args: |
+            BASE_IMAGE=${{ env.REGISTRY }}/circuit-bench-vacask@${{ steps.vacask.outputs.digest }}
+            IMAGE_VERSION=${{ steps.version.outputs.value }}
+          provenance: mode=max
+          sbom: true
+
+      - name: Smoke-test the published images
+        shell: bash
+        env:
+          VERSION: ${{ steps.version.outputs.value }}
+        run: |
+          set -euo pipefail
+          run_smoke() {
+            docker pull "${REGISTRY}/circuit-bench-$1:${VERSION}"
+            docker run --rm --network none -v "$PWD/tests:/smoke:ro" \
+              "${REGISTRY}/circuit-bench-$1:${VERSION}" "/smoke/$2"
+          }
+          run_smoke ihp-sg13g2-ngspice ngspice-ihp-sg13g2-smoke.sh
+          run_smoke xyce xyce-smoke.sh
+          run_smoke gf180-xyce xyce-gf180-smoke.sh
+          run_smoke ihp-sg13g2-xyce xyce-ihp-sg13g2-smoke.sh
+          run_smoke vacask vacask-smoke.sh
+          run_smoke gf180-vacask vacask-gf180-smoke.sh
+          run_smoke ihp-sg13g2-vacask vacask-ihp-sg13g2-smoke.sh
+
+      - name: Record published manifest digests
+        shell: bash
+        env:
+          VERSION: ${{ steps.version.outputs.value }}
+          IHP_NGSPICE_DIGEST: ${{ steps.ihp_ngspice.outputs.digest }}
+          XYCE_DIGEST: ${{ steps.xyce.outputs.digest }}
+          GF180_XYCE_DIGEST: ${{ steps.gf180_xyce.outputs.digest }}
+          IHP_XYCE_DIGEST: ${{ steps.ihp_xyce.outputs.digest }}
+          VACASK_DIGEST: ${{ steps.vacask.outputs.digest }}
+          GF180_VACASK_DIGEST: ${{ steps.gf180_vacask.outputs.digest }}
+          IHP_VACASK_DIGEST: ${{ steps.ihp_vacask.outputs.digest }}
+        run: |
+          set -euo pipefail
+          jq -n \
+            --arg version "$VERSION" \
+            --arg ihp_ngspice "$IHP_NGSPICE_DIGEST" \
+            --arg xyce "$XYCE_DIGEST" \
+            --arg gf180_xyce "$GF180_XYCE_DIGEST" \
+            --arg ihp_xyce "$IHP_XYCE_DIGEST" \
+            --arg vacask "$VACASK_DIGEST" \
+            --arg gf180_vacask "$GF180_VACASK_DIGEST" \
+            --arg ihp_vacask "$IHP_VACASK_DIGEST" \
+            '{version: $version, images: {
+                "circuit-bench-ihp-sg13g2-ngspice": $ihp_ngspice,
+                "circuit-bench-xyce": $xyce,
+                "circuit-bench-gf180-xyce": $gf180_xyce,
+                "circuit-bench-ihp-sg13g2-xyce": $ihp_xyce,
+                "circuit-bench-vacask": $vacask,
+                "circuit-bench-gf180-vacask": $gf180_vacask,
+                "circuit-bench-ihp-sg13g2-vacask": $ihp_vacask}}' \
+            > published-digests.json
+          {
+            echo "## Published IHP SG13G2, Xyce and VACASK images"
+            echo
+            echo "- ihp-sg13g2-ngspice: \`$IHP_NGSPICE_DIGEST\`"
+            echo "- xyce: \`$XYCE_DIGEST\`"
+            echo "- gf180-xyce: \`$GF180_XYCE_DIGEST\`"
+            echo "- ihp-sg13g2-xyce: \`$IHP_XYCE_DIGEST\`"
+            echo "- vacask: \`$VACASK_DIGEST\`"
+            echo "- gf180-vacask: \`$GF180_VACASK_DIGEST\`"
+            echo "- ihp-sg13g2-vacask: \`$IHP_VACASK_DIGEST\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload digest record
+        uses: actions/upload-artifact@v4
+        with:
+          name: published-analog-sim-digests-${{ steps.version.outputs.value }}
+          path: published-digests.json
+          if-no-files-found: error

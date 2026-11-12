@@ -1,0 +1,49 @@
+Circuit-Bench ngspice and IHP SG13G2 smoke test
+* Loads the typical sections the PDK's .spiceinit points at and exercises one
+* device of each class: 1.2 V and 3.3 V MOS (PSP103 via OSDI), the rsil
+* resistor (R3_CMC via OSDI), the MIM capacitor, the npn13G2 HBT and a diode.
+.lib cornerMOSlv.lib mos_tt
+.lib cornerMOShv.lib mos_tt
+.lib cornerRES.lib res_typ
+.lib cornerCAP.lib cap_typ
+.lib cornerHBT.lib hbt_typ
+.lib cornerDIO.lib dio_tt
+
+VDD vdd 0 1.2
+VDDH vddh 0 3.3
+VIN in 0 0
+* 1.2 V inverter with its input low: the output sits at VDD.
+XM1 out in 0 0 sg13_lv_nmos w=1u l=0.13u
+XM2 out in vdd vdd sg13_lv_pmos w=2u l=0.13u
+* 3.3 V inverter with its input high: the output sits at ground.
+XM3 outh vddh 0 0 sg13_hv_nmos w=1u l=0.45u
+XM4 outh vddh vddh vddh sg13_hv_pmos w=2u l=0.45u
+* Equal rsil resistors divide VDD in half; a MIM capacitor loads the tap.
+XR1 vdd rmid 0 rsil w=0.5u l=5u
+XR2 rmid 0 0 rsil w=0.5u l=5u
+XC1 rmid 0 cap_cmim w=7u l=7u
+* Diode-connected npn13G2 carrying 10 uA.
+IQ 0 qb 10u
+XQ1 qb qb 0 0 npn13G2 Nx=1
+* Forward-biased antenna diode carrying 10 uA.
+ID 0 da 10u
+XD1 da 0 dantenna l=10u w=10u
+
+* A second 1.2 V inverter driven by a pulse, for a transient check.
+VP inp 0 pulse(0 1.2 1n 50p 50p 2n 4n)
+XM5 outp inp 0 0 sg13_lv_nmos w=1u l=0.13u
+XM6 outp inp vdd vdd sg13_lv_pmos w=2u l=0.13u
+CL outp 0 5f
+
+.control
+set wr_singlescale
+set wr_vecnames
+op
+wrdata /tmp/ihp-smoke-op.dat v(out) v(outh) v(rmid) v(qb) v(da) i(VDD)
+tran 10p 6n
+meas tran vhigh find v(outp) at=0.9n
+meas tran vlow find v(outp) at=2.5n
+echo "TRAN $&vhigh $&vlow" > /tmp/ihp-smoke-tran.txt
+quit
+.endc
+.end

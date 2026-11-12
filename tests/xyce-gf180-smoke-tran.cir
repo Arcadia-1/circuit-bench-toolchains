@@ -1,0 +1,15 @@
+Circuit-Bench Xyce and GF180MCU smoke test (transient)
+* A 3.3 V inverter loaded by a MIM capacitor, driven by a pulse.
+.include /opt/gf180/pdk/gf180mcuD/libs.tech/xyce/design.xyce
+.lib /opt/gf180/pdk/gf180mcuD/libs.tech/xyce/sm141064.xyce typical
+.lib /opt/gf180/pdk/gf180mcuD/libs.tech/xyce/sm141064.xyce mimcap_typical
+
+VDD vdd 0 3.3
+VP in 0 pulse(0 3.3 2n 100p 100p 4n 8n)
+M1 out in 0 0 nfet_03v3 w=2u l=0.28u
+M2 out in vdd vdd pfet_03v3 w=4u l=0.28u
+XC1 out 0 cap_mim_2f0_m4m5_noshield c_width=5u c_length=5u
+
+.tran 10p 8n
+.print tran format=csv v(in) v(out)
+.end

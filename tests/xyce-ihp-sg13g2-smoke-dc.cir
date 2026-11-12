@@ -1,0 +1,31 @@
+Circuit-Bench Xyce and IHP SG13G2 smoke test (DC)
+* 1.2 V and 3.3 V MOS (PSP103 plugin), the rsil resistor (R3_CMC plugin),
+* the npn13G2 HBT and an antenna diode. Run with: Xyce -plugin $IHP_XYCE_PLUGINS
+.lib /opt/ihp/pdk/ihp-sg13g2/libs.tech/xyce/models/cornerMOSlv.lib mos_tt
+.lib /opt/ihp/pdk/ihp-sg13g2/libs.tech/xyce/models/cornerMOShv.lib mos_tt
+.lib /opt/ihp/pdk/ihp-sg13g2/libs.tech/xyce/models/cornerRES.lib res_typ
+.lib /opt/ihp/pdk/ihp-sg13g2/libs.tech/xyce/models/cornerHBT.lib hbt_typ
+.lib /opt/ihp/pdk/ihp-sg13g2/libs.tech/xyce/models/cornerDIO.lib dio_tt
+
+VDD vdd 0 1.2
+VDDH vddh 0 3.3
+VIN in 0 0
+* 1.2 V inverter with its input low: the output sits at VDD.
+XM1 out in 0 0 sg13_lv_nmos w=1u l=0.13u
+XM2 out in vdd vdd sg13_lv_pmos w=2u l=0.13u
+* 3.3 V inverter with its input high: the output sits at ground.
+XM3 outh vddh 0 0 sg13_hv_nmos w=1u l=0.45u
+XM4 outh vddh vddh vddh sg13_hv_pmos w=2u l=0.45u
+* Equal rsil resistors divide VDD in half.
+XR1 vdd rmid 0 rsil w=0.5u l=5u
+XR2 rmid 0 0 rsil w=0.5u l=5u
+* Diode-connected npn13G2 carrying 10 uA.
+IQ 0 qb 10u
+XQ1 qb qb 0 0 npn13G2 Nx=1
+* Forward-biased antenna diode carrying 10 uA.
+ID 0 da 10u
+XD1 da 0 dantenna l=10u w=10u
+
+.dc VIN 0 0 1
+.print dc format=csv v(out) v(outh) v(rmid) v(qb) v(da) i(VDD)
+.end

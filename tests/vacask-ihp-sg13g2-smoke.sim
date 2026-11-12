@@ -1,0 +1,27 @@
+Circuit-Bench VACASK and IHP SG13G2 smoke test
+// Four MOS bias points (drain at VDD for NMOS, source at VDD for PMOS) and a
+// pulsed inverter. The DC currents are compared with ngspice 46 on the same models.
+include "sg13g2_vacask_common.lib"
+include "cornerMOSlv.lib" section=mos_tt
+
+model v vsource
+vgf (gf 0) v dc=1.2
+vgh (gh 0) v dc=0.6
+vsp (sp 0) v dc=1.2
+vn1 (dn1 0) v dc=1.2
+vn2 (dn2 0) v dc=1.2
+vp1 (dp1 0) v dc=0
+vp2 (dp2 0) v dc=0
+xn1 (dn1 gf 0 0) sg13_lv_nmos w=1u l=0.13u
+xn2 (dn2 gh 0 0) sg13_lv_nmos w=1u l=0.13u
+xp1 (dp1 0 sp sp) sg13_lv_pmos w=1u l=0.13u
+xp2 (dp2 gh sp sp) sg13_lv_pmos w=1u l=0.13u
+
+vin (in 0) v type="pulse" val0=0 val1=1.2 rise=50p fall=50p width=2n delay=1n period=4n
+xm1 (out in 0 0) sg13_lv_nmos w=1u l=0.13u
+xm2 (out in sp sp) sg13_lv_pmos w=2u l=0.13u
+
+control
+  analysis op1 op
+  analysis tran1 tran step=10p stop=4n
+endc
