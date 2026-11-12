@@ -26,6 +26,14 @@
       }
     },
     {
+      "name": "ngspice",
+      "image": "ghcr.io/arcadia-1/circuit-bench-ngspice:2.0.8",
+      "digest": "sha256:0fbd3883b7c333eba55554bb14953b414e5a0ff7e7455feb6c8cec08575f91e4",
+      "components": {
+        "ngspice": "46"
+      }
+    },
+    {
       "name": "ngspice-sky130",
       "image": "ghcr.io/arcadia-1/circuit-bench-sky130-ngspice:2.0.8",
       "digest": "sha256:2da03dc7f1ead7ddc33f2f930a0487ae8618e51518009344584a98fca41a621d",

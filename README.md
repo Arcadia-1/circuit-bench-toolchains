@@ -22,7 +22,7 @@ everything. The images carry no benchmark checker or scoring code.
 | IHP SG13G2 | `ihp-sg13g2-ngspice:1.0.0` | `ihp-sg13g2-xyce:1.0.0` | `ihp-sg13g2-vacask:1.0.0` |
 
 Sky130 and GF180 ngspice images are amd64 + arm64; the rest are amd64.
-Simulator-only bases: `xyce:1.0.0`, `vacask:1.0.0`.
+Simulator-only bases: `ngspice:2.0.8`, `xyce:1.0.0`, `vacask:1.0.0`.
 
 ## Digital
 
