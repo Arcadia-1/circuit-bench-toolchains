@@ -18,5 +18,7 @@ Exact inputs are in `images.lock.json`. Working decks for every image are in
   resistors). That needs a host kernel 5.3 or newer; on RHEL/Rocky 8 hosts
   (kernel 4.18) VACASK aborts with "assign: Bad file descriptor". IHP needs no
   run-time compile. For GF180 use the plain MOS devices, not `*_dss`.
-- No Sky130 Xyce or VACASK image: Sky130 has no official Xyce models, and
-  VACASK cannot convert its library.
+- No Sky130 Xyce image: through the ngspice library, Xyce matches MOS and
+  resistors but rejects the diodes and MIM capacitors and mis-models the PNP
+  (see `validation/`). No Sky130 VACASK image: VACASK cannot convert the
+  library.

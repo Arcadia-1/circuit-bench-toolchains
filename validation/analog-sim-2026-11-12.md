@@ -14,7 +14,7 @@ GitHub's Ubuntu 24.04 runners.
 | `circuit-bench-gf180-xyce` | 2.10 GB | `xyce-gf180-smoke.sh` | passed |
 | `circuit-bench-ihp-sg13g2-xyce` | 2.09 GB | `xyce-ihp-sg13g2-smoke.sh` | passed |
 | `circuit-bench-vacask` | 590 MB | `vacask-smoke.sh` | passed, 53/53 runs |
-| `circuit-bench-gf180-vacask` | 591 MB | `vacask-gf180-smoke.sh` | needs kernel >= 5.3; CI |
+| `circuit-bench-gf180-vacask` | 591 MB | `vacask-gf180-smoke.sh` | passed 3/3 in CI (kernel 7.0); aborts on kernel 4.18 |
 | `circuit-bench-ihp-sg13g2-vacask` | 594 MB | `vacask-ihp-sg13g2-smoke.sh` | passed, 53/53 runs |
 
 Xyce 7.10.0 and Trilinos 14.4 took 22 minutes to build with 30 jobs. The
@@ -45,9 +45,25 @@ VDD; W = 1 um, minimum L), same models, drain currents in uA:
 | IHP SG13G2 (1.2 V) | NMOS full / half | 400.53 / 24.02 | 400.53 / 24.02 | 400.53 / 24.02 |
 | | PMOS full / half | 211.45 / 16.84 | 211.45 / 16.84 | 211.45 / 16.84 |
 
-All simulators agree within 0.03 %. Sky130 has no Xyce image (no official
-Xyce models; Xyce reads the ngspice models, but only this DC check was run)
-and no VACASK image (VACASK's generic converter cannot read the library).
+All simulators agree within 0.03 %. Sky130 has no VACASK image: VACASK's
+generic converter cannot read the library.
+
+## Sky130 with Xyce: evaluated, not added
+
+Sky130 ships no Xyce models, so Xyce reads the ngspice library. Checked device
+by device against ngspice 46 on the continuous library:
+
+| Device | Result |
+| --- | --- |
+| MOS (BSIM4) | identical (475.551 uA at Vgs = Vds = 1.8 V); the cards declare BSIM4 4.5, which Xyce runs as 4.6.1 |
+| MOS mismatch (`tt_mm`, `.SAMPLING useExpr=true`) | 200 samples: mean 47.2 vs 46.6 uA, std 7.49 vs 7.45 uA |
+| `res_high_po` | identical (27.9437 uA at 1 V) |
+| `cap_mim_m3_1` | aborts outside sampling: its capacitance expression contains `AGAUSS` |
+| diodes (`.model ... d level=3`) | rejected: Xyce supports diode levels 1 and 2 |
+| PNP | runs, but Xyce ignores TREF, SUBS, NS, ISS, TNF1; Vbe at 10 uA is 12 mV lower |
+
+A Sky130 Xyce image would silently mis-simulate bipolar circuits and reject
+capacitors and diodes, so it is not added.
 
 ## Findings recorded in the images and docs
 
