@@ -1,0 +1,126 @@
+name: Publish IHP SG13G2 ngspice image
+
+# Publishes circuit-bench-ihp-sg13g2-ngspice on a chosen ngspice base. Used for
+# the ngspice 46 line: ngspice 47 does not converge on IHP HBT (VBIC,
+# self-heating) circuits that ngspice 46 simulates (see validation/).
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Immutable semantic version to publish, for example 2.1.0
+        required: true
+        type: string
+      ngspice_base:
+        description: circuit-bench-ngspice manifest to build on (image@sha256:...)
+        required: true
+        type: string
+      ngspice_version:
+        description: ngspice release in that base, for example 46
+        required: true
+        type: string
+      vacask_deb_url:
+        description: Optional mirror of vacask_0.3.4_amd64.deb (checksum is still enforced)
+        required: false
+        type: string
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: publish-ihp-ngspice-${{ inputs.version }}
+  cancel-in-progress: false
+
+env:
+  IMAGE: ghcr.io/arcadia-1/circuit-bench-ihp-sg13g2-ngspice
+
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+
+    steps:
+      - name: Check out sources
+        uses: actions/checkout@v4
+
+      - name: Validate inputs
+        id: version
+        shell: bash
+        env:
+          VERSION: ${{ inputs.version }}
+          BASE: ${{ inputs.ngspice_base }}
+          NGV: ${{ inputs.ngspice_version }}
+        run: |
+          set -euo pipefail
+          [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "version must be like 2.1.0" >&2; exit 1; }
+          [[ "$BASE" =~ ^ghcr\.io/arcadia-1/circuit-bench-ngspice@sha256:[0-9a-f]{64}$ ]] || { echo "ngspice_base must be circuit-bench-ngspice@sha256:..." >&2; exit 1; }
+          [[ "$NGV" =~ ^[0-9]+$ ]] || { echo "ngspice_version must be a number" >&2; exit 1; }
+          echo "value=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Reject an existing release tag
+        shell: bash
+        env:
+          VERSION: ${{ steps.version.outputs.value }}
+        run: |
+          set -euo pipefail
+          if docker buildx imagetools inspect "${IMAGE}:${VERSION}" >/dev/null 2>&1; then
+            echo "refusing to overwrite an existing immutable release: ${IMAGE}:${VERSION}" >&2
+            exit 1
+          fi
+
+      - name: Build and publish ngspice with IHP SG13G2
+        id: ihp
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/ngspice-ihp-sg13g2.Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: ${{ env.IMAGE }}:${{ steps.version.outputs.value }}
+          build-args: |
+            BASE_IMAGE=${{ inputs.ngspice_base }}
+            NGSPICE_VERSION=${{ inputs.ngspice_version }}
+            IMAGE_VERSION=${{ steps.version.outputs.value }}
+            ${{ inputs.vacask_deb_url != '' && format('VACASK_DEB_URL={0}', inputs.vacask_deb_url) || '' }}
+          provenance: mode=max
+          sbom: true
+
+      - name: Smoke-test the published image
+        shell: bash
+        env:
+          VERSION: ${{ steps.version.outputs.value }}
+          NGV: ${{ inputs.ngspice_version }}
+        run: |
+          set -euo pipefail
+          docker pull "${IMAGE}:${VERSION}"
+          docker run --rm --network none -e EXPECTED_NGSPICE_VERSION="$NGV" \
+            -v "$PWD/tests:/smoke:ro" "${IMAGE}:${VERSION}" /smoke/ngspice-ihp-sg13g2-smoke.sh
+
+      - name: Record published manifest digest
+        shell: bash
+        env:
+          VERSION: ${{ steps.version.outputs.value }}
+          DIGEST: ${{ steps.ihp.outputs.digest }}
+        run: |
+          set -euo pipefail
+          jq -n --arg version "$VERSION" --arg d "$DIGEST" \
+            '{version: $version, images: {"circuit-bench-ihp-sg13g2-ngspice": $d}}' > published-digests.json
+          echo "- ihp-sg13g2-ngspice: \`$DIGEST\`" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload digest record
+        uses: actions/upload-artifact@v4
+        with:
+          name: published-ihp-ngspice-digest-${{ steps.version.outputs.value }}
+          path: published-digests.json
+          if-no-files-found: error
