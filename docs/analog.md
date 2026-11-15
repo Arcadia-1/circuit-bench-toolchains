@@ -7,7 +7,10 @@ ciel-releases builds), IHP SG13G2 from IHP-Open-PDK `e73adb4` (main,
 `resistors_mod_mismatch.lib`, which IHP removed after it, so the IHP models in
 the VACASK image are older than those in the ngspice and Xyce images (their
 MOS models are the same; the HBT, resistor and diode statistics differ).
-Exact inputs are in `images.lock.json`. Working decks for every image are in
+The IHP ngspice image stays on ngspice 46 (`ihp-sg13g2-ngspice:2.1.0`, IHP
+`e73adb4`): with ngspice 47 a differential HBT stage (npn13G2, VBIC with
+self-heating) that ngspice 46 solves at 125 C no longer reaches an operating
+point. Exact inputs are in `images.lock.json`. Working decks for every image are in
 `tests/`.
 
 - **ngspice + IHP**: copy `$IHP_PDK_ROOT/libs.tech/ngspice/.spiceinit` into

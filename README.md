@@ -19,11 +19,14 @@ everything. The images carry no benchmark checker or scoring code.
 | --- | --- | --- | --- |
 | Sky130 | `sky130-ngspice:3.0.0` | — | — |
 | GF180MCU | `gf180-ngspice:2.0.0` | `gf180-xyce:2.0.0` | `gf180-vacask:2.0.0` |
-| IHP SG13G2 | `ihp-sg13g2-ngspice:2.0.0` | `ihp-sg13g2-xyce:2.0.0` | `ihp-sg13g2-vacask:1.0.0` |
+| IHP SG13G2 | `ihp-sg13g2-ngspice:2.1.0` (ngspice 46) | `ihp-sg13g2-xyce:2.0.0` | `ihp-sg13g2-vacask:1.0.0` |
 
 PDK snapshots: Sky130 and GF180MCU open_pdks `e7a6777` (2026-11-12); IHP
 SG13G2 `e73adb4` (2026-11-10), except the VACASK image, which stays on
 `0dedf26` (2026-09-15) because VACASK 0.3.4 cannot convert later IHP models.
+The IHP ngspice image to use is `2.1.0`, ngspice 46 with IHP `e73adb4`:
+ngspice 47 (`2.0.0`) fails to converge on IHP HBT circuits that ngspice 46
+simulates (see `validation/ngspice47-pdk-2026-11-15.md`).
 Sky130 and GF180 ngspice images are amd64 + arm64; the rest are amd64.
 Simulator-only bases: `ngspice:3.0.0`, `xyce:1.0.0`, `vacask:1.0.0`.
 Earlier tags (ngspice 46, older PDKs) stay published; see `images.lock.json`.
