@@ -4,12 +4,13 @@ ARG BASE_IMAGE
 ARG SOURCE_FETCH_IMAGE=debian:bookworm-slim@sha256:7b140f374b289a7c2befc338f42ebe6441b7ea838a042bbd5acbfca6ec875818
 ARG OSDI_BUILD_IMAGE=debian:trixie-slim@sha256:a72b4433de1cf7d6bae0c4cee74d0547f58601a643b3375f070c51600d63b6b2
 
-# IHP SG13G2 model files at a pinned commit of IHP-Open-PDK. The commit is the
-# one VACASK 0.3.4's converter targets, so every IHP image uses the same models.
+# IHP SG13G2 model files at a pinned commit of IHP-Open-PDK (main, 2026-11-10),
+# the same as the Xyce IHP image. The VACASK IHP image stays on an older commit
+# (see docker/vacask-ihp-sg13g2.Dockerfile).
 FROM ${SOURCE_FETCH_IMAGE} AS ihp-src
 
 ARG DEBIAN_FRONTEND=noninteractive
-ARG IHP_COMMIT=0dedf265f0cad6ef81aeb64b9ddd17eef88c0460
+ARG IHP_COMMIT=e73adb4045731ddec21634146d536380057f6a26
 
 RUN apt-get update \
  && apt-get install -y --no-install-recommends ca-certificates git \
@@ -59,7 +60,7 @@ RUN cd /opt/ihp/pdk/ihp-sg13g2/libs.tech/verilog-a \
 FROM ${BASE_IMAGE}
 
 ARG IMAGE_VERSION=dev
-ARG IHP_COMMIT=0dedf265f0cad6ef81aeb64b9ddd17eef88c0460
+ARG IHP_COMMIT=e73adb4045731ddec21634146d536380057f6a26
 
 COPY --from=ihp-osdi /opt/ihp /opt/ihp
 
@@ -70,7 +71,7 @@ ENV PDK_ROOT=/opt/ihp/pdk \
     IHP_PDK_ROOT=/opt/ihp/pdk/ihp-sg13g2
 
 RUN test "$(command -v ngspice)" = /opt/ngspice/bin/ngspice \
- && ngspice --version | grep -F "ngspice-46" \
+ && ngspice --version | grep -F "ngspice-47" \
  && python3 -c 'import numpy' \
  && test ! -e /usr/local/bin/check_circuit.py \
  && test -s "${IHP_PDK_ROOT}/libs.tech/ngspice/.spiceinit" \
@@ -81,7 +82,7 @@ RUN test "$(command -v ngspice)" = /opt/ngspice/bin/ngspice \
 LABEL org.opencontainers.image.source="https://github.com/Arcadia-1/circuit-bench-toolchains" \
       org.opencontainers.image.description="Pinned ngspice and IHP SG13G2 runtime for Circuit-Bench tasks" \
       org.opencontainers.image.version="${IMAGE_VERSION}" \
-      org.circuit-bench.ngspice.version="46" \
+      org.circuit-bench.ngspice.version="47" \
       org.circuit-bench.ihp-sg13g2.commit="${IHP_COMMIT}"
 
 CMD ["bash"]

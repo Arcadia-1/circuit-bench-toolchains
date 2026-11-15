@@ -13,4 +13,8 @@
 `publish-analog-sim.yml` (IHP, Xyce, VACASK). Each refuses to overwrite a tag,
 smoke-tests what it pushed and uploads the digests. Codeberg rate-limits the
 VACASK download; `publish-analog-sim.yml` accepts a mirror URL (checksum still
-enforced).
+enforced). When only the PDKs or ngspice change, pass the existing Xyce and
+VACASK bases (`xyce_base`, `vacask_base`) instead of rebuilding them, and
+`ihp_vacask: false` when the IHP VACASK image's inputs are unchanged. The GF180
+and IHP workflows pin the ngspice base by digest: publish `publish-images.yml`
+first and update `BASE_IMAGE`/`NGSPICE_BASE` (also in `check-vacask.yml`).

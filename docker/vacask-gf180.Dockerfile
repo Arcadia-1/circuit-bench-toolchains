@@ -6,8 +6,8 @@ ARG MODEL_FETCH_IMAGE=debian:bookworm-slim@sha256:7b140f374b289a7c2befc338f42ebe
 FROM ${MODEL_FETCH_IMAGE} AS gf180-models
 
 ARG DEBIAN_FRONTEND=noninteractive
-ARG GF180_COMMIT=792ef67037d74c8c51811eab3ce23cf793491296
-ARG GF180_COMMON_SHA256=1342fe46866de6a3f1d8c3edb3193dafa4c3cf955cb987a17791b2287c41e39d
+ARG GF180_COMMIT=e7a6777d157a9d94c7ac757457b9e4309e9e9000
+ARG GF180_COMMON_SHA256=f7584fe2d0622d0d3fb8db3d5bc1f27a6697ab80e853d0f6ba14a55ab3c9f476
 
 RUN apt-get update \
  && apt-get install -y --no-install-recommends ca-certificates curl zstd \
@@ -44,7 +44,7 @@ RUN cd /opt/gf180/pdk \
 FROM ${BASE_IMAGE}
 
 ARG IMAGE_VERSION=dev
-ARG GF180_COMMIT=792ef67037d74c8c51811eab3ce23cf793491296
+ARG GF180_COMMIT=e7a6777d157a9d94c7ac757457b9e4309e9e9000
 
 COPY --from=gf180-vacask /opt/gf180/pdk/gf180mcuD/libs.tech/vacask /opt/gf180/pdk/gf180mcuD/libs.tech/vacask
 

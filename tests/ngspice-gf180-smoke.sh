@@ -3,7 +3,7 @@
 set -euo pipefail
 
 test_root="${TEST_ROOT:-/smoke}"
-expected_ngspice_version="${EXPECTED_NGSPICE_VERSION:-46}"
+expected_ngspice_version="${EXPECTED_NGSPICE_VERSION:-47}"
 
 test "$(command -v ngspice)" = /opt/ngspice/bin/ngspice
 ngspice --version | grep -F "ngspice-${expected_ngspice_version}"

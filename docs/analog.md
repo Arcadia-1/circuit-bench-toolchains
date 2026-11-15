@@ -1,7 +1,12 @@
 # Analog images: usage notes
 
-PDK snapshots: Sky130 and GF180MCU from open_pdks (GF180 `792ef67`), IHP SG13G2
-from IHP-Open-PDK `0dedf26` (2026-09-15, the snapshot VACASK 0.3.4 supports).
+PDK snapshots: Sky130 and GF180MCU from open_pdks `e7a6777` (2026-11-12, the
+ciel-releases builds), IHP SG13G2 from IHP-Open-PDK `e73adb4` (main,
+2026-11-10). The IHP VACASK image stays on `0dedf26` (2026-09-15): VACASK
+0.3.4's `sg13g2tovc` still reads `sg13g2_hbt_mod_mismatch.lib` and
+`resistors_mod_mismatch.lib`, which IHP removed after it, so the IHP models in
+the VACASK image are older than those in the ngspice and Xyce images (their
+MOS models are the same; the HBT, resistor and diode statistics differ).
 Exact inputs are in `images.lock.json`. Working decks for every image are in
 `tests/`.
 
