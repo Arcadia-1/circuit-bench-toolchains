@@ -201,6 +201,17 @@
         "gf180mcu_commit": "e7a6777d157a9d94c7ac757457b9e4309e9e9000",
         "gf180_pdk_root": "/opt/gf180/pdk/gf180mcuD"
       }
+    },
+    {
+      "name": "ngspice-ihp-sg13g2",
+      "image": "ghcr.io/arcadia-1/circuit-bench-ihp-sg13g2-ngspice:2.1.0",
+      "digest": "sha256:9bce514e0772a72ac5db6c59b6de7de5fad40623bcc1b3571f35838018377463",
+      "components": {
+        "ngspice": "46",
+        "ihp_sg13g2_commit": "e73adb4045731ddec21634146d536380057f6a26",
+        "ihp_pdk_root": "/opt/ihp/pdk/ihp-sg13g2",
+        "osdi_compiler": "OpenVAF-Reloaded from VACASK 0.3.4"
+      }
     }
   ]
 }
