@@ -4,8 +4,9 @@ ARG BASE_IMAGE
 ARG SOURCE_FETCH_IMAGE=debian:bookworm-slim@sha256:7b140f374b289a7c2befc338f42ebe6441b7ea838a042bbd5acbfca6ec875818
 ARG OSDI_BUILD_IMAGE=debian:trixie-slim@sha256:a72b4433de1cf7d6bae0c4cee74d0547f58601a643b3375f070c51600d63b6b2
 
-# IHP SG13G2 model files at a pinned commit of IHP-Open-PDK. The commit is the
-# one VACASK 0.3.4's converter targets, so every IHP image uses the same models.
+# IHP SG13G2 model files at a pinned commit of IHP-Open-PDK (main, 2026-11-10),
+# the same as the Xyce IHP image. The VACASK IHP image stays on an older commit
+# (see docker/vacask-ihp-sg13g2.Dockerfile).
 FROM ${SOURCE_FETCH_IMAGE} AS ihp-src
 
 ARG DEBIAN_FRONTEND=noninteractive

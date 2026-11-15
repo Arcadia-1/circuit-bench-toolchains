@@ -3,12 +3,13 @@
 ARG BASE_IMAGE
 ARG SOURCE_FETCH_IMAGE=debian:bookworm-slim@sha256:7b140f374b289a7c2befc338f42ebe6441b7ea838a042bbd5acbfca6ec875818
 
-# Same IHP-Open-PDK commit as the other IHP images. VACASK 0.3.4's converter
-# needs exactly this generation of the model files.
+# IHP-Open-PDK 0dedf26 (2026-09-15), older than the ngspice and Xyce IHP
+# images: VACASK 0.3.4's converter still reads sg13g2_hbt_mod_mismatch.lib and
+# resistors_mod_mismatch.lib, which IHP removed after this commit.
 FROM ${SOURCE_FETCH_IMAGE} AS ihp-src
 
 ARG DEBIAN_FRONTEND=noninteractive
-ARG IHP_COMMIT=e73adb4045731ddec21634146d536380057f6a26
+ARG IHP_COMMIT=0dedf265f0cad6ef81aeb64b9ddd17eef88c0460
 
 RUN apt-get update \
  && apt-get install -y --no-install-recommends ca-certificates git \
@@ -44,7 +45,7 @@ RUN mkdir -p /opt/ihp/pdk/ihp-sg13g2/libs.tech/xschem/sg13g2_stdcells \
 FROM ${BASE_IMAGE}
 
 ARG IMAGE_VERSION=dev
-ARG IHP_COMMIT=e73adb4045731ddec21634146d536380057f6a26
+ARG IHP_COMMIT=0dedf265f0cad6ef81aeb64b9ddd17eef88c0460
 
 COPY --from=ihp-vacask /opt/ihp/pdk/ihp-sg13g2/LICENSE /opt/ihp/pdk/ihp-sg13g2/LICENSE
 COPY --from=ihp-vacask /opt/ihp/pdk/ihp-sg13g2/libs.tech/vacask /opt/ihp/pdk/ihp-sg13g2/libs.tech/vacask
