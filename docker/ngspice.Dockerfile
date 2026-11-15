@@ -5,8 +5,8 @@ ARG DEBIAN_BASE=debian:bookworm-slim@sha256:7b140f374b289a7c2befc338f42ebe6441b7
 FROM ${DEBIAN_BASE} AS ngspice-builder
 
 ARG DEBIAN_FRONTEND=noninteractive
-ARG NGSPICE_VERSION=46
-ARG NGSPICE_SHA256=a0d1699af1940b06649276dcd6ff5a566c8c0cad01b2f7b5e99dedbb4d64c19b
+ARG NGSPICE_VERSION=47
+ARG NGSPICE_SHA256=894e649651f1838a14095e5a5439e7d3aa63e87ede14d283173fda4fcdef675f
 
 RUN apt-get update \
  && apt-get install -y --no-install-recommends \
@@ -45,7 +45,7 @@ RUN curl --fail --location --retry 5 --retry-all-errors \
 FROM ${DEBIAN_BASE}
 
 ARG DEBIAN_FRONTEND=noninteractive
-ARG NGSPICE_VERSION=46
+ARG NGSPICE_VERSION=47
 ARG IMAGE_VERSION=dev
 
 RUN apt-get update \

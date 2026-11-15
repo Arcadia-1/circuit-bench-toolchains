@@ -8,7 +8,7 @@ ARG SOURCE_FETCH_IMAGE=debian:bookworm-slim@sha256:7b140f374b289a7c2befc338f42eb
 FROM ${SOURCE_FETCH_IMAGE} AS ihp-src
 
 ARG DEBIAN_FRONTEND=noninteractive
-ARG IHP_COMMIT=0dedf265f0cad6ef81aeb64b9ddd17eef88c0460
+ARG IHP_COMMIT=e73adb4045731ddec21634146d536380057f6a26
 
 RUN apt-get update \
  && apt-get install -y --no-install-recommends ca-certificates git \
@@ -44,7 +44,7 @@ RUN mkdir -p /opt/ihp/pdk/ihp-sg13g2/libs.tech/xschem/sg13g2_stdcells \
 FROM ${BASE_IMAGE}
 
 ARG IMAGE_VERSION=dev
-ARG IHP_COMMIT=0dedf265f0cad6ef81aeb64b9ddd17eef88c0460
+ARG IHP_COMMIT=e73adb4045731ddec21634146d536380057f6a26
 
 COPY --from=ihp-vacask /opt/ihp/pdk/ihp-sg13g2/LICENSE /opt/ihp/pdk/ihp-sg13g2/LICENSE
 COPY --from=ihp-vacask /opt/ihp/pdk/ihp-sg13g2/libs.tech/vacask /opt/ihp/pdk/ihp-sg13g2/libs.tech/vacask

@@ -1,13 +1,16 @@
 name: Publish IHP SG13G2, Xyce and VACASK images
 
 # Publishes, on one version line:
-#   circuit-bench-ihp-sg13g2-ngspice  ngspice 46 + IHP SG13G2 (OSDI models)
+#   circuit-bench-ihp-sg13g2-ngspice  ngspice 47 + IHP SG13G2 (OSDI models)
 #   circuit-bench-xyce                Xyce 7.10.0 base with Verilog-A plugin support
 #   circuit-bench-gf180-xyce          Xyce + GF180MCU Xyce models
 #   circuit-bench-ihp-sg13g2-xyce     Xyce + IHP SG13G2 models and PSP103/R3_CMC plugins
 #   circuit-bench-vacask              VACASK 0.3.4 base (bundles OpenVAF-Reloaded)
 #   circuit-bench-gf180-vacask        VACASK + GF180MCU models converted by gf180tovc
 #   circuit-bench-ihp-sg13g2-vacask   VACASK + IHP SG13G2 models converted by sg13g2tovc
+# An existing Xyce or VACASK base can be reused instead of rebuilt (xyce_base,
+# vacask_base), and the IHP VACASK image can be left out (ihp_vacask: false)
+# when its inputs have not changed; skipped images get no new tag.
 # All seven are linux/amd64 only: VACASK and OpenVAF-Reloaded ship amd64
 # binaries only, and Xyce is too slow to build under QEMU.
 
@@ -18,6 +21,19 @@ on:
         description: Immutable semantic version to publish, for example 1.0.0
         required: true
         type: string
+      xyce_base:
+        description: Reuse this Xyce base (image@sha256:...) instead of building circuit-bench-xyce
+        required: false
+        type: string
+      vacask_base:
+        description: Reuse this VACASK base (image@sha256:...) instead of building circuit-bench-vacask
+        required: false
+        type: string
+      ihp_vacask:
+        description: Build circuit-bench-ihp-sg13g2-vacask
+        required: false
+        type: boolean
+        default: true
       vacask_deb_url:
         description: Optional mirror of vacask_0.3.4_amd64.deb (checksum is still enforced)
         required: false
@@ -74,7 +90,11 @@ jobs:
           VERSION: ${{ steps.version.outputs.value }}
         run: |
           set -euo pipefail
-          for name in ihp-sg13g2-ngspice xyce gf180-xyce ihp-sg13g2-xyce vacask gf180-vacask ihp-sg13g2-vacask; do
+          names="ihp-sg13g2-ngspice gf180-xyce ihp-sg13g2-xyce gf180-vacask"
+          [ -z "${{ inputs.xyce_base }}" ] && names="$names xyce"
+          [ -z "${{ inputs.vacask_base }}" ] && names="$names vacask"
+          [ "${{ inputs.ihp_vacask }}" = false ] || names="$names ihp-sg13g2-vacask"
+          for name in $names; do
             if docker buildx imagetools inspect "${REGISTRY}/circuit-bench-${name}:${VERSION}" >/dev/null 2>&1; then
               echo "refusing to overwrite an existing immutable release: circuit-bench-${name}:${VERSION}" >&2
               exit 1
@@ -101,6 +121,7 @@ jobs:
 
       - name: Build and publish the Xyce base
         id: xyce
+        if: inputs.xyce_base == ''
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -126,7 +147,7 @@ jobs:
           push: true
           tags: ${{ env.REGISTRY }}/circuit-bench-gf180-xyce:${{ steps.version.outputs.value }}
           build-args: |
-            BASE_IMAGE=${{ env.REGISTRY }}/circuit-bench-xyce@${{ steps.xyce.outputs.digest }}
+            BASE_IMAGE=${{ inputs.xyce_base != '' && inputs.xyce_base || format('{0}/circuit-bench-xyce@{1}', env.REGISTRY, steps.xyce.outputs.digest) }}
             IMAGE_VERSION=${{ steps.version.outputs.value }}
           provenance: mode=max
           sbom: true
@@ -141,13 +162,14 @@ jobs:
           push: true
           tags: ${{ env.REGISTRY }}/circuit-bench-ihp-sg13g2-xyce:${{ steps.version.outputs.value }}
           build-args: |
-            BASE_IMAGE=${{ env.REGISTRY }}/circuit-bench-xyce@${{ steps.xyce.outputs.digest }}
+            BASE_IMAGE=${{ inputs.xyce_base != '' && inputs.xyce_base || format('{0}/circuit-bench-xyce@{1}', env.REGISTRY, steps.xyce.outputs.digest) }}
             IMAGE_VERSION=${{ steps.version.outputs.value }}
           provenance: mode=max
           sbom: true
 
       - name: Build and publish the VACASK base
         id: vacask
+        if: inputs.vacask_base == ''
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -171,13 +193,14 @@ jobs:
           push: true
           tags: ${{ env.REGISTRY }}/circuit-bench-gf180-vacask:${{ steps.version.outputs.value }}
           build-args: |
-            BASE_IMAGE=${{ env.REGISTRY }}/circuit-bench-vacask@${{ steps.vacask.outputs.digest }}
+            BASE_IMAGE=${{ inputs.vacask_base != '' && inputs.vacask_base || format('{0}/circuit-bench-vacask@{1}', env.REGISTRY, steps.vacask.outputs.digest) }}
             IMAGE_VERSION=${{ steps.version.outputs.value }}
           provenance: mode=max
           sbom: true
 
       - name: Build and publish VACASK with IHP SG13G2
         id: ihp_vacask
+        if: inputs.ihp_vacask != false
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -186,7 +209,7 @@ jobs:
           push: true
           tags: ${{ env.REGISTRY }}/circuit-bench-ihp-sg13g2-vacask:${{ steps.version.outputs.value }}
           build-args: |
-            BASE_IMAGE=${{ env.REGISTRY }}/circuit-bench-vacask@${{ steps.vacask.outputs.digest }}
+            BASE_IMAGE=${{ inputs.vacask_base != '' && inputs.vacask_base || format('{0}/circuit-bench-vacask@{1}', env.REGISTRY, steps.vacask.outputs.digest) }}
             IMAGE_VERSION=${{ steps.version.outputs.value }}
           provenance: mode=max
           sbom: true
@@ -198,27 +221,29 @@ jobs:
         run: |
           set -euo pipefail
           run_smoke() {
-            docker pull "${REGISTRY}/circuit-bench-$1:${VERSION}"
-            docker run --rm --network none -v "$PWD/tests:/smoke:ro" \
-              "${REGISTRY}/circuit-bench-$1:${VERSION}" "/smoke/$2"
+            docker pull "$1"
+            docker run --rm --network none -v "$PWD/tests:/smoke:ro" "$1" "/smoke/$2"
           }
-          run_smoke ihp-sg13g2-ngspice ngspice-ihp-sg13g2-smoke.sh
-          run_smoke xyce xyce-smoke.sh
-          run_smoke gf180-xyce xyce-gf180-smoke.sh
-          run_smoke ihp-sg13g2-xyce xyce-ihp-sg13g2-smoke.sh
-          run_smoke vacask vacask-smoke.sh
-          run_smoke gf180-vacask vacask-gf180-smoke.sh
-          run_smoke ihp-sg13g2-vacask vacask-ihp-sg13g2-smoke.sh
+          tag() { echo "${REGISTRY}/circuit-bench-$1:${VERSION}"; }
+          run_smoke "$(tag ihp-sg13g2-ngspice)" ngspice-ihp-sg13g2-smoke.sh
+          run_smoke "${{ inputs.xyce_base != '' && inputs.xyce_base || '$(tag xyce)' }}" xyce-smoke.sh
+          run_smoke "$(tag gf180-xyce)" xyce-gf180-smoke.sh
+          run_smoke "$(tag ihp-sg13g2-xyce)" xyce-ihp-sg13g2-smoke.sh
+          run_smoke "${{ inputs.vacask_base != '' && inputs.vacask_base || '$(tag vacask)' }}" vacask-smoke.sh
+          run_smoke "$(tag gf180-vacask)" vacask-gf180-smoke.sh
+          if [ "${{ inputs.ihp_vacask }}" != false ]; then
+            run_smoke "$(tag ihp-sg13g2-vacask)" vacask-ihp-sg13g2-smoke.sh
+          fi
 
       - name: Record published manifest digests
         shell: bash
         env:
           VERSION: ${{ steps.version.outputs.value }}
           IHP_NGSPICE_DIGEST: ${{ steps.ihp_ngspice.outputs.digest }}
-          XYCE_DIGEST: ${{ steps.xyce.outputs.digest }}
+          XYCE_DIGEST: ${{ steps.xyce.outputs.digest || inputs.xyce_base }}
           GF180_XYCE_DIGEST: ${{ steps.gf180_xyce.outputs.digest }}
           IHP_XYCE_DIGEST: ${{ steps.ihp_xyce.outputs.digest }}
-          VACASK_DIGEST: ${{ steps.vacask.outputs.digest }}
+          VACASK_DIGEST: ${{ steps.vacask.outputs.digest || inputs.vacask_base }}
           GF180_VACASK_DIGEST: ${{ steps.gf180_vacask.outputs.digest }}
           IHP_VACASK_DIGEST: ${{ steps.ihp_vacask.outputs.digest }}
         run: |

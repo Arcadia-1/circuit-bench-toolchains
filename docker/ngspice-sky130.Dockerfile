@@ -6,9 +6,9 @@ ARG MODEL_FETCH_IMAGE=debian:bookworm-slim@sha256:7b140f374b289a7c2befc338f42ebe
 FROM ${MODEL_FETCH_IMAGE} AS sky130-models
 
 ARG DEBIAN_FRONTEND=noninteractive
-ARG SKY130_COMMIT=c6d73a35f524070e85faff4a6a9eef49553ebc2b
-ARG SKY130_COMMON_SHA256=8a7f06212c6d9fa5a1da6145f559f48a903434a5c5b6cd5352363700b6cadb94
-ARG SKY130_FD_PR_SHA256=dcb49c7450dfb55c91ce315d258563895df1ed75d4a9090064aade8290030a87
+ARG SKY130_COMMIT=e7a6777d157a9d94c7ac757457b9e4309e9e9000
+ARG SKY130_COMMON_SHA256=00633ea50acdb6c92044bf7467a3a9048b3d685cd9489e45ea58cd82f8d99a8d
+ARG SKY130_FD_PR_SHA256=1a0ba63249fda16a337508a5e3126bfa598c4e7fdab843078353db3f261086af
 
 RUN apt-get update \
  && apt-get install -y --no-install-recommends ca-certificates curl zstd \
@@ -19,10 +19,10 @@ RUN mkdir -p /tmp/sky130 /opt/sky130/continuous \
       /opt/sky130/pdk/sky130A/libs.ref/sky130_fd_pr \
  && curl --fail --location --retry 5 --retry-all-errors \
       --output /tmp/sky130-common.tar.zst \
-      "https://github.com/chipfoundry/volare/releases/download/sky130-${SKY130_COMMIT}/common.tar.zst" \
+      "https://github.com/fossi-foundation/ciel-releases/releases/download/sky130-${SKY130_COMMIT}/common.tar.zst" \
  && curl --fail --location --retry 5 --retry-all-errors \
       --output /tmp/sky130-fd-pr.tar.zst \
-      "https://github.com/chipfoundry/volare/releases/download/sky130-${SKY130_COMMIT}/sky130_fd_pr.tar.zst" \
+      "https://github.com/fossi-foundation/ciel-releases/releases/download/sky130-${SKY130_COMMIT}/sky130_fd_pr.tar.zst" \
  && echo "${SKY130_COMMON_SHA256}  /tmp/sky130-common.tar.zst" | sha256sum -c - \
  && echo "${SKY130_FD_PR_SHA256}  /tmp/sky130-fd-pr.tar.zst" | sha256sum -c - \
  && tar --use-compress-program=unzstd -xf /tmp/sky130-common.tar.zst -C /tmp/sky130 \
@@ -35,7 +35,7 @@ RUN mkdir -p /tmp/sky130 /opt/sky130/continuous \
 FROM ${BASE_IMAGE}
 
 ARG IMAGE_VERSION=dev
-ARG SKY130_COMMIT=c6d73a35f524070e85faff4a6a9eef49553ebc2b
+ARG SKY130_COMMIT=e7a6777d157a9d94c7ac757457b9e4309e9e9000
 
 COPY --from=sky130-models /opt/sky130 /opt/sky130
 
@@ -43,7 +43,7 @@ ENV SKY130_MODEL_LIB=/opt/sky130/continuous/sky130.lib.spice \
     SKY130_PDK_ROOT=/opt/sky130/pdk/sky130A
 
 RUN test "$(command -v ngspice)" = /opt/ngspice/bin/ngspice \
- && ngspice --version | grep -F "ngspice-46" \
+ && ngspice --version | grep -F "ngspice-47" \
  && python3 -c 'import numpy' \
  && test ! -e /usr/local/bin/check_circuit.py \
  && test -f "${SKY130_MODEL_LIB}" \
@@ -61,7 +61,7 @@ RUN test "$(command -v ngspice)" = /opt/ngspice/bin/ngspice \
 LABEL org.opencontainers.image.source="https://github.com/Arcadia-1/circuit-bench-toolchains" \
       org.opencontainers.image.description="Pinned ngspice and Sky130 runtime for Circuit-Bench tasks" \
       org.opencontainers.image.version="${IMAGE_VERSION}" \
-      org.circuit-bench.ngspice.version="46" \
+      org.circuit-bench.ngspice.version="47" \
       org.circuit-bench.sky130.commit="${SKY130_COMMIT}"
 
 CMD ["bash"]
