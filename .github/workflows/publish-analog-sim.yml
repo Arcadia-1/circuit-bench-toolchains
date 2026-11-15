@@ -49,8 +49,8 @@ concurrency:
 
 env:
   REGISTRY: ghcr.io/arcadia-1
-  # Policy-free ngspice 46 base, circuit-bench-ngspice:2.0.8 manifest list.
-  NGSPICE_BASE: ghcr.io/arcadia-1/circuit-bench-ngspice@sha256:0fbd3883b7c333eba55554bb14953b414e5a0ff7e7455feb6c8cec08575f91e4
+  # Policy-free ngspice 47 base, circuit-bench-ngspice:3.0.0 manifest list.
+  NGSPICE_BASE: ghcr.io/arcadia-1/circuit-bench-ngspice@sha256:29a70bb65bb79f2823a70db8da2593786c076784a938e86698276df7359181ba
 
 jobs:
   publish:

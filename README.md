@@ -1,7 +1,7 @@
 # Circuit-Bench Toolchains
 
 [![Images on GHCR](https://img.shields.io/badge/images-ghcr.io%2Farcadia--1-2496ED?logo=docker&logoColor=white)](https://github.com/orgs/Arcadia-1/packages?repo_name=circuit-bench-toolchains)
-[![ngspice 46](https://img.shields.io/badge/ngspice-46-blue)](https://ngspice.sourceforge.io/)
+[![ngspice 47](https://img.shields.io/badge/ngspice-47-blue)](https://ngspice.sourceforge.io/)
 [![Xyce 7.10.0](https://img.shields.io/badge/Xyce-7.10.0-blue)](https://github.com/Xyce/Xyce)
 [![VACASK 0.3.4](https://img.shields.io/badge/VACASK-0.3.4-blue)](https://codeberg.org/arpadbuermen/VACASK)
 [![PDKs](https://img.shields.io/badge/PDKs-Sky130%20%7C%20GF180%20%7C%20IHP%20SG13G2-2ea44f)](docs/analog.md)
@@ -15,14 +15,18 @@ everything. The images carry no benchmark checker or scoring code.
 
 `ghcr.io/arcadia-1/circuit-bench-<name>`
 
-| PDK | ngspice 46 | Xyce 7.10.0 | VACASK 0.3.4 |
+| PDK | ngspice 47 | Xyce 7.10.0 | VACASK 0.3.4 |
 | --- | --- | --- | --- |
-| Sky130 | `sky130-ngspice:2.0.8` | — | — |
-| GF180MCU | `gf180-ngspice:1.0.0` | `gf180-xyce:1.0.0` | `gf180-vacask:1.0.0` |
-| IHP SG13G2 | `ihp-sg13g2-ngspice:1.0.0` | `ihp-sg13g2-xyce:1.0.0` | `ihp-sg13g2-vacask:1.0.0` |
+| Sky130 | `sky130-ngspice:3.0.0` | — | — |
+| GF180MCU | `gf180-ngspice:2.0.0` | `gf180-xyce:2.0.0` | `gf180-vacask:2.0.0` |
+| IHP SG13G2 | `ihp-sg13g2-ngspice:2.0.0` | `ihp-sg13g2-xyce:2.0.0` | `ihp-sg13g2-vacask:1.0.0` |
 
+PDK snapshots: Sky130 and GF180MCU open_pdks `e7a6777` (2026-11-12); IHP
+SG13G2 `e73adb4` (2026-11-10), except the VACASK image, which stays on
+`0dedf26` (2026-09-15) because VACASK 0.3.4 cannot convert later IHP models.
 Sky130 and GF180 ngspice images are amd64 + arm64; the rest are amd64.
-Simulator-only bases: `ngspice:2.0.8`, `xyce:1.0.0`, `vacask:1.0.0`.
+Simulator-only bases: `ngspice:3.0.0`, `xyce:1.0.0`, `vacask:1.0.0`.
+Earlier tags (ngspice 46, older PDKs) stay published; see `images.lock.json`.
 
 ## Digital
 
@@ -35,7 +39,7 @@ Simulator-only bases: `ngspice:2.0.8`, `xyce:1.0.0`, `vacask:1.0.0`.
 
 ```bash
 docker run --rm -v "$PWD:/work" -w /work \
-  ghcr.io/arcadia-1/circuit-bench-sky130-ngspice:2.0.8 ngspice -b deck.spice
+  ghcr.io/arcadia-1/circuit-bench-sky130-ngspice:3.0.0 ngspice -b deck.spice
 ```
 
 In task Dockerfiles, pin the digest from [`images.lock.json`](images.lock.json).

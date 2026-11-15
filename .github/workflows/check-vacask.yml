@@ -19,7 +19,7 @@ permissions:
   contents: read
 
 env:
-  NGSPICE_BASE: ghcr.io/arcadia-1/circuit-bench-ngspice@sha256:0fbd3883b7c333eba55554bb14953b414e5a0ff7e7455feb6c8cec08575f91e4
+  NGSPICE_BASE: ghcr.io/arcadia-1/circuit-bench-ngspice@sha256:29a70bb65bb79f2823a70db8da2593786c076784a938e86698276df7359181ba
 
 jobs:
   check:

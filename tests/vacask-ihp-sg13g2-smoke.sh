@@ -22,7 +22,7 @@ from rawfile import rawread
 
 op = rawread("op1.raw").get()
 current = {name: abs(float(op[f"{name}:flow(br)"][0])) for name in ("vn1", "vn2", "vp1", "vp2")}
-# Drain currents from ngspice 46 on the same PDK models and bias points.
+# Drain currents from ngspice 46 and 47 (identical) on the same PDK models and bias points.
 reference = {"vn1": 0.000400526, "vn2": 2.40222e-05, "vp1": 0.0002114547, "vp2": 1.683571e-05}
 tr = rawread("tran1.raw").get()
 before = float(np.interp(0.9e-9, tr["time"], tr["out"]))
